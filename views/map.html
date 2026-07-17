@@ -4,74 +4,911 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Map</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <title>⛧ TRACKER_MAP · live</title>
+
+    <!-- Google Font: Fira Code -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
     <style>
+        /* ============================================================
+               CYBERPUNK VARIABLES
+            ============================================================ */
+        :root {
+            --bg-primary: #08080e;
+            --border-neon: #00ffcc;
+            --border-neon-dim: rgba(0, 255, 204, 0.15);
+            --text-primary: #b0f0e6;
+            --text-secondary: #7ae0d0;
+            --text-muted: #4a8a82;
+            --glow-cyan: 0 0 20px rgba(0, 255, 204, 0.2);
+            --glow-magenta: 0 0 24px rgba(255, 0, 255, 0.15);
+            --radius-sm: 6px;
+            --radius-md: 12px;
+            --radius-lg: 20px;
+            --font: 'Fira Code', 'Courier New', monospace;
+            --transition: 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* ============================================================
+               RESET & BASE
+            ============================================================ */
         * {
             margin: 0;
             padding: 0;
-            font-family: sans-serif;
             box-sizing: border-box;
         }
 
+        html,
         body {
+            font-family: var(--font);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ============================================================
+               ANIMATED GRID BACKGROUND
+            ============================================================ */
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background-image:
+                linear-gradient(rgba(0, 255, 204, 0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 204, 0.025) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            animation: gridMove 14s linear infinite;
+        }
+
+        @keyframes gridMove {
+            0% {
+                transform: translate(0, 0);
+            }
+            100% {
+                transform: translate(50px, 50px);
+            }
+        }
+
+        /* ============================================================
+               SCANLINES
+            ============================================================ */
+        .scanlines {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            background: repeating-linear-gradient(0deg,
+                    transparent 0px,
+                    transparent 3px,
+                    rgba(0, 255, 200, 0.005) 3px,
+                    rgba(0, 255, 200, 0.005) 4px);
+        }
+
+        /* ============================================================
+               NEON ORBS
+            ============================================================ */
+        .bg-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(130px);
+            pointer-events: none;
+            z-index: 0;
+            animation: orbFloat 22s ease-in-out infinite alternate;
+        }
+        .bg-orb--1 {
+            width: 450px;
+            height: 450px;
+            top: -180px;
+            right: -120px;
+            background: #00ffcc;
+            opacity: 0.06;
+            animation-delay: 0s;
+        }
+        .bg-orb--2 {
+            width: 350px;
+            height: 350px;
+            bottom: -140px;
+            left: -100px;
+            background: #ff00ff;
+            opacity: 0.05;
+            animation-delay: -8s;
+        }
+
+        @keyframes orbFloat {
+            0% {
+                transform: translate(0, 0) scale(1);
+            }
+            33% {
+                transform: translate(40px, -50px) scale(1.15);
+            }
+            66% {
+                transform: translate(-30px, 30px) scale(0.85);
+            }
+            100% {
+                transform: translate(15px, -20px) scale(1.05);
+            }
+        }
+
+        /* ============================================================
+               MAP WRAPPER
+            ============================================================ */
+        .map-wrapper {
+            position: relative;
+            z-index: 2;
+            height: 100vh;
+            width: 100vw;
             display: flex;
             flex-direction: column;
-            height: 100vh;
-            background: #000;
-            color: aliceblue;
         }
 
-        h4 {
-            padding: .5rem;
-
+        /* ============================================================
+               TOP HUD BAR – glass terminal
+            ============================================================ */
+        .hud-bar {
+            position: absolute;
+            top: 1.2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(16px) saturate(1.2);
+            -webkit-backdrop-filter: blur(16px) saturate(1.2);
+            border: 1px solid var(--border-neon-dim);
+            border-radius: 50px;
+            padding: 0.5rem 1.5rem 0.5rem 1.8rem;
+            box-shadow: var(--glow-cyan), 0 16px 40px -12px rgba(0, 0, 0, 0.9);
+            transition: var(--transition);
+            flex-wrap: wrap;
+            justify-content: center;
         }
 
+        .hud-bar:hover {
+            border-color: var(--border-neon);
+            box-shadow: var(--glow-cyan), var(--glow-magenta), 0 16px 40px -12px rgba(0, 0, 0, 0.9);
+        }
+
+        .hud-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.04em;
+            white-space: nowrap;
+        }
+
+        .hud-item .label {
+            color: var(--text-muted);
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .hud-item .value {
+            color: var(--text-primary);
+            font-weight: 600;
+            text-shadow: 0 0 12px rgba(0, 255, 204, 0.1);
+        }
+
+        .hud-item .value.id-value {
+            color: var(--border-neon);
+            text-shadow: 0 0 20px rgba(0, 255, 204, 0.2);
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .hud-divider {
+            width: 1px;
+            height: 24px;
+            background: var(--border-neon-dim);
+        }
+
+        /* status dot */
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ffcc;
+            display: inline-block;
+            animation: pulseDot 1.8s ease-in-out infinite;
+            box-shadow: 0 0 16px rgba(0, 255, 204, 0.5);
+        }
+
+        .status-dot.warning {
+            background: #ffaa00;
+            box-shadow: 0 0 16px rgba(255, 170, 0, 0.4);
+        }
+
+        @keyframes pulseDot {
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.2;
+                transform: scale(0.6);
+            }
+        }
+
+        /* ============================================================
+               MAP CONTAINER
+            ============================================================ */
         #map {
-            height: 100%;
+            height: 100vh;
+            width: 100vw;
+            z-index: 2;
+            position: relative;
+        }
+
+        /* Leaflet overrides – dark theme */
+        .leaflet-control-zoom {
+            border: 1px solid var(--border-neon-dim) !important;
+            background: rgba(0, 0, 0, 0.6) !important;
+            backdrop-filter: blur(8px);
+            border-radius: var(--radius-sm) !important;
+            overflow: hidden;
+            box-shadow: var(--glow-cyan) !important;
+        }
+
+        .leaflet-control-zoom a {
+            background: transparent !important;
+            color: var(--text-secondary) !important;
+            border-color: var(--border-neon-dim) !important;
+            font-family: var(--font) !important;
+            font-size: 1rem !important;
+            transition: var(--transition) !important;
+        }
+
+        .leaflet-control-zoom a:hover {
+            background: rgba(0, 255, 204, 0.06) !important;
+            color: var(--border-neon) !important;
+        }
+
+        .leaflet-touch .leaflet-control-zoom a {
+            width: 36px !important;
+            height: 36px !important;
+            line-height: 36px !important;
+        }
+
+        /* ---- Layer Control (satellite switcher) ---- */
+        .leaflet-control-layers {
+            border: 1px solid var(--border-neon-dim) !important;
+            background: rgba(0, 0, 0, 0.7) !important;
+            backdrop-filter: blur(8px) !important;
+            border-radius: var(--radius-sm) !important;
+            box-shadow: var(--glow-cyan) !important;
+            font-family: var(--font) !important;
+            color: var(--text-secondary) !important;
+            margin: 10px !important;
+        }
+        .leaflet-control-layers-toggle {
+            background-color: transparent !important;
+            color: var(--text-secondary) !important;
+            border: 1px solid var(--border-neon-dim) !important;
+            border-radius: var(--radius-sm) !important;
+            transition: var(--transition) !important;
+        }
+        .leaflet-control-layers-toggle:hover {
+            background: rgba(0, 255, 204, 0.06) !important;
+            border-color: var(--border-neon) !important;
+        }
+        .leaflet-control-layers-list {
+            background: transparent !important;
+            padding: 4px 8px !important;
+        }
+        .leaflet-control-layers-base label {
+            color: var(--text-primary) !important;
+            font-size: 0.7rem !important;
+            letter-spacing: 0.04em !important;
+            padding: 2px 0 !important;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .leaflet-control-layers-base label:hover {
+            color: var(--border-neon) !important;
+            text-shadow: 0 0 12px rgba(0, 255, 204, 0.2);
+        }
+        .leaflet-control-layers-base input[type="radio"] {
+            accent-color: var(--border-neon);
+            margin-right: 6px;
+        }
+
+        .leaflet-control-attribution {
+            background: rgba(0, 0, 0, 0.5) !important;
+            backdrop-filter: blur(4px);
+            color: var(--text-muted) !important;
+            font-family: var(--font) !important;
+            font-size: 0.55rem !important;
+            border-radius: var(--radius-sm) !important;
+            border: 1px solid rgba(0, 255, 204, 0.05) !important;
+            padding: 0.2rem 0.8rem !important;
+        }
+
+        .leaflet-control-attribution a {
+            color: var(--text-secondary) !important;
+        }
+
+        /* ============================================================
+               CUSTOM MAP MARKER – animated pulse
+            ============================================================ */
+        .custom-marker {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            position: relative;
+        }
+
+        .marker-ring {
+            position: absolute;
             width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid var(--border-neon);
+            animation: markerPulse 2s ease-out infinite;
+            box-shadow: 0 0 30px rgba(0, 255, 204, 0.2);
+        }
+
+        .marker-ring:nth-child(2) {
+            animation-delay: 0.7s;
+        }
+
+        .marker-ring:nth-child(3) {
+            animation-delay: 1.4s;
+        }
+
+        @keyframes markerPulse {
+            0% {
+                transform: scale(0.6);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(2.2);
+                opacity: 0;
+            }
+        }
+
+        .marker-core {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--border-neon);
+            box-shadow: 0 0 30px rgba(0, 255, 204, 0.6), 0 0 60px rgba(0, 255, 204, 0.2);
+            z-index: 1;
+            transition: var(--transition);
+        }
+
+        .marker-core::after {
+            content: '';
+            position: absolute;
+            inset: -6px;
+            border-radius: 50%;
+            border: 1px solid rgba(0, 255, 204, 0.15);
+            animation: coreGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes coreGlow {
+            0%,
+            100% {
+                transform: scale(1);
+                opacity: 0.3;
+            }
+            50% {
+                transform: scale(1.3);
+                opacity: 0.8;
+            }
+        }
+
+        /* ============================================================
+               BOTTOM HUD – coordinates & status
+            ============================================================ */
+        .hud-bottom {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(14px) saturate(1.2);
+            -webkit-backdrop-filter: blur(14px) saturate(1.2);
+            border: 1px solid var(--border-neon-dim);
+            border-radius: 50px;
+            padding: 0.5rem 1.8rem;
+            box-shadow: var(--glow-cyan), 0 12px 36px -12px rgba(0, 0, 0, 0.8);
+            transition: var(--transition);
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .hud-bottom:hover {
+            border-color: var(--border-neon);
+        }
+
+        .coord-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.04em;
+        }
+
+        .coord-item .label {
+            color: var(--text-muted);
+            font-size: 0.55rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .coord-item .value {
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: 0.8rem;
+            text-shadow: 0 0 12px rgba(0, 255, 204, 0.05);
+            min-width: 80px;
+        }
+
+        .coord-item .value .highlight {
+            color: var(--border-neon);
+            text-shadow: 0 0 16px rgba(0, 255, 204, 0.15);
+        }
+
+        .hud-bottom .hud-divider {
+            height: 20px;
+        }
+
+        /* ============================================================
+               UPDATE FLASH ANIMATION
+            ============================================================ */
+        .flash-update {
+            animation: flashPulse 0.6s ease-out;
+        }
+
+        @keyframes flashPulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(0, 255, 204, 0.4);
+            }
+            100% {
+                box-shadow: 0 0 40px 20px rgba(0, 255, 204, 0);
+            }
+        }
+
+        /* ============================================================
+               RESPONSIVE
+            ============================================================ */
+        @media (max-width: 820px) {
+            .hud-bar {
+                top: 0.8rem;
+                padding: 0.4rem 1.2rem;
+                border-radius: 30px;
+                gap: 0.8rem;
+                max-width: 95%;
+            }
+            .hud-item {
+                font-size: 0.65rem;
+            }
+            .hud-item .value.id-value {
+                max-width: 80px;
+            }
+            .hud-divider {
+                height: 18px;
+            }
+            .hud-bottom {
+                bottom: 1.2rem;
+                padding: 0.4rem 1.2rem;
+                border-radius: 30px;
+                gap: 0.8rem;
+                max-width: 95%;
+            }
+            .coord-item {
+                font-size: 0.6rem;
+            }
+            .coord-item .value {
+                font-size: 0.7rem;
+                min-width: 60px;
+            }
+            .leaflet-control-layers {
+                margin: 6px !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hud-bar {
+                padding: 0.3rem 0.8rem;
+                gap: 0.5rem;
+                border-radius: 20px;
+                top: 0.6rem;
+            }
+            .hud-item {
+                font-size: 0.55rem;
+                gap: 0.3rem;
+            }
+            .hud-item .label {
+                font-size: 0.5rem;
+            }
+            .hud-item .value.id-value {
+                max-width: 60px;
+                font-size: 0.55rem;
+            }
+            .status-dot {
+                width: 5px;
+                height: 5px;
+            }
+            .hud-divider {
+                height: 14px;
+                width: 1px;
+            }
+            .hud-bottom {
+                padding: 0.3rem 0.8rem;
+                gap: 0.5rem;
+                border-radius: 20px;
+                bottom: 0.8rem;
+            }
+            .coord-item {
+                font-size: 0.5rem;
+                gap: 0.3rem;
+            }
+            .coord-item .value {
+                font-size: 0.6rem;
+                min-width: 50px;
+            }
+            .coord-item .label {
+                font-size: 0.45rem;
+            }
+            .marker-core {
+                width: 14px;
+                height: 14px;
+            }
+            .custom-marker {
+                width: 38px;
+                height: 38px;
+            }
+            .leaflet-touch .leaflet-control-zoom a {
+                width: 30px !important;
+                height: 30px !important;
+                line-height: 30px !important;
+                font-size: 0.8rem !important;
+            }
+            .leaflet-control-layers {
+                margin: 4px !important;
+                font-size: 0.6rem !important;
+            }
+            .leaflet-control-layers-base label {
+                font-size: 0.6rem !important;
+            }
+        }
+
+        @media (max-width: 380px) {
+            .hud-item .value.id-value {
+                max-width: 40px;
+            }
+            .hud-item .label {
+                display: none;
+            }
+            .coord-item .label {
+                display: none;
+            }
+        }
+
+        /* ============================================================
+               REDUCED MOTION
+            ============================================================ */
+        @media (prefers-reduced-motion: reduce) {
+            .bg-grid {
+                animation: none;
+            }
+            .bg-orb {
+                animation: none;
+            }
+            .status-dot {
+                animation: none;
+            }
+            .marker-ring {
+                animation: none;
+            }
+            .marker-core::after {
+                animation: none;
+            }
+            .flash-update {
+                animation: none;
+            }
         }
     </style>
 </head>
 
 <body>
-    <h4>ID: <span id="display-id"></span></h4>
-    <div id="map"></div>
 
+    <!-- ===== BACKGROUND ===== -->
+    <div class="bg-grid"></div>
+    <div class="scanlines"></div>
+    <div class="bg-orb bg-orb--1"></div>
+    <div class="bg-orb bg-orb--2"></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/socket.io@4.8.1/client-dist/socket.io.min.js"></script>
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script>
-        const displayId = document.querySelector("#display-id")
-        const id = new URLSearchParams(location.search).get("id")
-        const latLng = JSON.parse(`{{ data }}`)
-        const map = L.map('map').setView(latLng, 12)
-        const marker = L.marker(latLng).addTo(map)
+    <!-- ===== MAP WRAPPER ===== -->
+    <div class="map-wrapper">
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-        }).addTo(map)
+        <!-- ===== TOP HUD ===== -->
+        <div class="hud-bar" id="hudBar">
+            <div class="hud-item">
+                <span class="label"><i class="fas fa-user"></i> target</span>
+                <span class="value id-value" id="display-id">—</span>
+            </div>
+            <div class="hud-divider"></div>
+            <div class="hud-item">
+                <span class="label">status</span>
+                <span class="status-dot" id="statusDot"></span>
+                <span class="value" id="statusText" style="font-size:0.65rem;font-weight:400;color:var(--text-muted);">online</span>
+            </div>
+            <div class="hud-divider"></div>
+            <div class="hud-item">
+                <span class="label"><i class="fas fa-signal"></i> updates</span>
+                <span class="value" id="updateCount" style="min-width:20px;">0</span>
+            </div>
+            <div class="hud-divider"></div>
+            <div class="hud-item">
+                <span class="label"><i class="fas fa-clock"></i> last</span>
+                <span class="value" id="lastUpdate" style="font-weight:400;font-size:0.65rem;color:var(--text-muted);">—</span>
+            </div>
+        </div>
 
-        const socket = io("", {
-            secure: true,
-            path: "/socket.io",
-            transports: ['websocket']
-        })
+        <!-- ===== MAP ===== -->
+        <div id="map"></div>
 
-        displayId.innerHTML = id
-        // on update
-        socket.on("map-data", data => {
-            if (data.id == id) {
-                displayId.innerHTML = `${id} - updating`
-                marker.setLatLng([data.lat, data.lng])
-                map.setView([data.lat, data.lng])
+        <!-- ===== BOTTOM HUD ===== -->
+        <div class="hud-bottom" id="hudBottom">
+            <div class="coord-item">
+                <span class="label"><i class="fas fa-location-arrow"></i> lat</span>
+                <span class="value" id="latDisplay"><span class="highlight">—</span></span>
+            </div>
+            <div class="hud-divider"></div>
+            <div class="coord-item">
+                <span class="label"><i class="fas fa-location-arrow"></i> lng</span>
+                <span class="value" id="lngDisplay"><span class="highlight">—</span></span>
+            </div>
+            <div class="hud-divider"></div>
+            <div class="coord-item">
+                <span class="label"><i class="fas fa-compass"></i> zoom</span>
+                <span class="value" id="zoomDisplay" style="min-width:30px;">12</span>
+            </div>
+        </div>
 
-                setTimeout(() => {
-                    displayId.innerHTML = id
-                }, 2500)
-            }
-        })
+    </div>
+
+    <!-- ===== LEAFET & SOCKET ===== -->
+    <script src="https://cdn.jsdelivr.net/npm/socket.io@4.8.1/client-dist/socket.io.min.js">
     </script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+    </script>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // ---- DOM refs ----
+            const displayId = document.getElementById('display-id');
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            const updateCountEl = document.getElementById('updateCount');
+            const lastUpdateEl = document.getElementById('lastUpdate');
+            const latDisplay = document.getElementById('latDisplay');
+            const lngDisplay = document.getElementById('lngDisplay');
+            const zoomDisplay = document.getElementById('zoomDisplay');
+            const hudBar = document.getElementById('hudBar');
+
+            // ---- get ID & data ----
+            const id = new URLSearchParams(location.search).get('id');
+            let latLng = [];
+            try {
+                latLng = JSON.parse(`{{ data }}`);
+            } catch (_) {
+                latLng = [0, 0];
+            }
+
+            if (!id || !latLng || latLng.length < 2) {
+                latLng = [0, 0];
+            }
+
+            displayId.textContent = id || '—';
+
+            // ---- Leaflet map ----
+            const map = L.map('map', {
+                center: latLng,
+                zoom: 14,
+                zoomControl: false,
+                attributionControl: true,
+                fadeAnimation: true,
+                zoomAnimation: true,
+            });
+
+            // ---- Base layers (Dark Map + Satellite) ----
+            const darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; CartoDB',
+                subdomains: 'abcd',
+                maxZoom: 19,
+                minZoom: 3,
+            });
+
+            const satelliteLayer = L.tileLayer(
+                'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    maxZoom: 19,
+                    attribution: '&copy; <a href="https://www.esri.com">ESRI</a>',
+                }
+            );
+
+            // Add default layer (dark)
+            darkLayer.addTo(map);
+
+            // ---- Layer control ----
+            const baseLayers = {
+                "Dark Map": darkLayer,
+                "Satellite": satelliteLayer
+            };
+            L.control.layers(baseLayers, null, {
+                position: 'topright',
+                collapsed: false,
+            }).addTo(map);
+
+            // ---- Zoom control (custom position) ----
+            L.control.zoom({
+                position: 'bottomright'
+            }).addTo(map);
+
+            // ---- Custom marker with pulse ----
+            const markerIcon = L.divIcon({
+                className: 'custom-marker',
+                html: `
+                        <div class="marker-ring"></div>
+                        <div class="marker-ring"></div>
+                        <div class="marker-ring"></div>
+                        <div class="marker-core"></div>
+                    `,
+                iconSize: [48, 48],
+                iconAnchor: [24, 24],
+            });
+
+            const marker = L.marker(latLng, {
+                icon: markerIcon,
+                riseOnHover: true,
+            }).addTo(map);
+
+            // ---- Update displays ----
+            let updateCount = 0;
+
+            function updateCoords(lat, lng) {
+                latDisplay.innerHTML = `<span class="highlight">${typeof lat === 'number' ? lat.toFixed(6) : '—'}</span>`;
+                lngDisplay.innerHTML = `<span class="highlight">${typeof lng === 'number' ? lng.toFixed(6) : '—'}</span>`;
+                zoomDisplay.textContent = map.getZoom();
+            }
+
+            function updateLastUpdate() {
+                const now = new Date();
+                const time = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit',
+                    second: '2-digit' });
+                lastUpdateEl.textContent = time;
+            }
+
+            function flashHUD() {
+                hudBar.classList.remove('flash-update');
+                // force reflow
+                void hudBar.offsetWidth;
+                hudBar.classList.add('flash-update');
+                setTimeout(() => hudBar.classList.remove('flash-update'), 700);
+            }
+
+            // initial
+            if (latLng && latLng.length === 2 && typeof latLng[0] === 'number') {
+                updateCoords(latLng[0], latLng[1]);
+                updateLastUpdate();
+                updateCountEl.textContent = '0';
+            }
+
+            // ---- Socket.io ----
+            const socket = io('', {
+                secure: true,
+                path: '/socket.io',
+                transports: ['websocket']
+            });
+
+            socket.on('map-data', function(data) {
+                if (data.id === id) {
+                    const lat = data.lat;
+                    const lng = data.lng;
+
+                    // update marker
+                    marker.setLatLng([lat, lng]);
+                    map.setView([lat, lng], map.getZoom(), {
+                        animate: true,
+                        duration: 0.6,
+                    });
+
+                    // update displays
+                    updateCoords(lat, lng);
+                    updateLastUpdate();
+                    updateCount += 1;
+                    updateCountEl.textContent = updateCount;
+
+                    // flash HUD
+                    flashHUD();
+
+                    // status: online
+                    statusDot.className = 'status-dot';
+                    statusText.textContent = 'online';
+                    statusText.style.color = 'var(--text-muted)';
+                }
+            });
+
+            // ---- Map events ----
+            map.on('zoomend', function() {
+                zoomDisplay.textContent = map.getZoom();
+            });
+
+            map.on('moveend', function() {
+                zoomDisplay.textContent = map.getZoom();
+            });
+
+            // ---- Status indicator for socket connection ----
+            socket.on('connect', function() {
+                statusDot.className = 'status-dot';
+                statusText.textContent = 'connected';
+                statusText.style.color = 'var(--text-muted)';
+            });
+
+            socket.on('disconnect', function() {
+                statusDot.className = 'status-dot warning';
+                statusText.textContent = 'disconnected';
+                statusText.style.color = '#ffaa00';
+            });
+
+            socket.on('connect_error', function() {
+                statusDot.className = 'status-dot warning';
+                statusText.textContent = 'error';
+                statusText.style.color = '#ff4444';
+            });
+
+            // ---- initial zoom display ----
+            setTimeout(() => {
+                zoomDisplay.textContent = map.getZoom();
+            }, 100);
+
+            // ---- handle missing ID ----
+            if (!id || id === 'null' || id === 'undefined') {
+                displayId.textContent = '⚠ no ID';
+                statusDot.className = 'status-dot warning';
+                statusText.textContent = 'invalid';
+                statusText.style.color = '#ff4444';
+            }
+
+            // ---- cleanup on page unload ----
+            window.addEventListener('beforeunload', function() {
+                if (socket) socket.disconnect();
+                if (map) map.remove();
+            });
+
+            console.log('⛧ Tracker map initialized — ID:', id);
+            console.log('🌍 Satellite view available via layer control');
+        })();
+    </script>
+
 </body>
 
 </html>

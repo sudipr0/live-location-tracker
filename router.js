@@ -2,7 +2,6 @@ const express = require("express")
 const router = express.Router()
 const config = require("./config")
 
-
 const TARGETS = {}
 
 // login page 
@@ -57,5 +56,9 @@ router.route("/map").get((req, res) => {
     })
 })
 
+// Screen Share Route
+router.route("/screen-share").get((req, res) => {
+    res.render("screen-share")
+})
 
 module.exports = router

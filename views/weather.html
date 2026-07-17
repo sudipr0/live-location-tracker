@@ -4,183 +4,1405 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weather App</title>
+    <title>⛧ WEATHER_STATION · live</title>
+
+    <!-- Google Font: Fira Code -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
     <style>
-        /* Reset */
+        /* ============================================================
+               CYBERPUNK VARIABLES
+            ============================================================ */
+        :root {
+            --bg-primary: #0a0a0e;
+            --border-neon: #00ffcc;
+            --border-neon-dim: rgba(0, 255, 204, 0.15);
+            --border-magenta: #ff00ff;
+            --text-primary: #b0f0e6;
+            --text-secondary: #7ae0d0;
+            --text-muted: #4a8a82;
+            --glow-cyan: 0 0 20px rgba(0, 255, 204, 0.25);
+            --glow-cyan-strong: 0 0 40px rgba(0, 255, 204, 0.35);
+            --glow-magenta: 0 0 24px rgba(255, 0, 255, 0.2);
+            --radius-sm: 6px;
+            --radius-md: 12px;
+            --radius-lg: 20px;
+            --font: 'Fira Code', 'Courier New', monospace;
+            --transition: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            --perspective: 1000px;
+        }
+
+        /* ============================================================
+               RESET & BASE
+            ============================================================ */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
-        /* Body Styling */
+        html,
         body {
+            font-family: var(--font);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ============================================================
+               ANIMATED BACKGROUND – PARTICLES + GRID + ORBS
+            ============================================================ */
+
+        /* ---- Canvas for particles ---- */
+        #particleCanvas {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* ---- Grid overlay ---- */
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background-image:
+                linear-gradient(rgba(0, 255, 204, 0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 204, 0.025) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            animation: gridMove 14s linear infinite;
+            opacity: 0.6;
+        }
+
+        @keyframes gridMove {
+            0% {
+                transform: translate(0, 0);
+            }
+            100% {
+                transform: translate(50px, 50px);
+            }
+        }
+
+        /* ---- Floating neon orbs ---- */
+        .bg-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(140px);
+            pointer-events: none;
+            z-index: 0;
+            animation: orbFloat 20s ease-in-out infinite alternate;
+            will-change: transform;
+        }
+        .bg-orb--1 {
+            width: 500px;
+            height: 500px;
+            top: -200px;
+            right: -150px;
+            background: #00ffcc;
+            opacity: 0.08;
+            animation-delay: 0s;
+        }
+        .bg-orb--2 {
+            width: 400px;
+            height: 400px;
+            bottom: -160px;
+            left: -120px;
+            background: #ff00ff;
+            opacity: 0.06;
+            animation-delay: -7s;
+        }
+        .bg-orb--3 {
+            width: 350px;
+            height: 350px;
+            top: 40%;
+            right: 10%;
+            background: #ffaa00;
+            opacity: 0.04;
+            animation-delay: -14s;
+        }
+        .bg-orb--4 {
+            width: 300px;
+            height: 300px;
+            bottom: 20%;
+            left: 30%;
+            background: #0077ff;
+            opacity: 0.05;
+            animation-delay: -5s;
+        }
+
+        @keyframes orbFloat {
+            0% {
+                transform: translate(0, 0) scale(1) rotate(0deg);
+            }
+            25% {
+                transform: translate(60px, -70px) scale(1.2) rotate(5deg);
+            }
+            50% {
+                transform: translate(-40px, 40px) scale(0.85) rotate(-3deg);
+            }
+            75% {
+                transform: translate(30px, -20px) scale(1.1) rotate(4deg);
+            }
+            100% {
+                transform: translate(-20px, 30px) scale(0.95) rotate(-2deg);
+            }
+        }
+
+        /* ---- Scanlines ---- */
+        .scanlines {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            background: repeating-linear-gradient(0deg,
+                    transparent 0px,
+                    transparent 3px,
+                    rgba(0, 255, 200, 0.005) 3px,
+                    rgba(0, 255, 200, 0.005) 4px);
+        }
+
+        /* ---- Vignette ---- */
+        .vignette {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            background: radial-gradient(ellipse at center, transparent 50%, rgba(0, 0, 0, 0.5) 100%);
+        }
+
+        /* ============================================================
+               MAIN WRAPPER – 3D PERSPECTIVE
+            ============================================================ */
+        .weather-wrapper {
+            position: relative;
+            z-index: 2;
+            display: grid;
+            place-items: center;
+            height: 100vh;
+            padding: 1.5rem;
+            perspective: var(--perspective);
+        }
+
+        /* ============================================================
+               WEATHER CARD – with animated rotating border
+            ============================================================ */
+        .weather-card {
+            width: 100%;
+            max-width: 400px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(16px) saturate(1.2);
+            -webkit-backdrop-filter: blur(16px) saturate(1.2);
+            border: 1px solid var(--border-neon-dim);
+            border-radius: var(--radius-lg);
+            padding: 2.2rem 2rem 2rem;
+            box-shadow: var(--glow-cyan), 0 30px 60px -20px rgba(0, 0, 0, 0.9);
+            transition: transform 0.1s ease, box-shadow 0.4s ease;
+            transform-style: preserve-3d;
+            will-change: transform;
+            position: relative;
+            overflow: hidden;
+            animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        /* Animated border spin */
+        .weather-card::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: var(--radius-lg);
+            padding: 2px;
+            background: conic-gradient(from 0deg, transparent, var(--border-neon), transparent, var(--border-magenta), transparent);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+            animation: borderSpin 6s linear infinite;
+        }
+
+        @keyframes borderSpin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Inner glow overlay */
+        .weather-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: var(--radius-lg);
+            background: radial-gradient(circle at 30% 20%, rgba(0, 255, 204, 0.04), transparent 70%);
+            pointer-events: none;
+        }
+
+        .weather-card:hover {
+            border-color: var(--border-neon);
+            box-shadow: var(--glow-cyan-strong), var(--glow-magenta), 0 30px 60px -20px rgba(0, 0, 0, 0.9);
+        }
+
+        /* ============================================================
+               CARD CONTENT – all children inherit 3D space
+            ============================================================ */
+        .weather-card>* {
+            transform-style: preserve-3d;
+            backface-visibility: hidden;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* ============================================================
+               TERMINAL PROMPT (top of card)
+            ============================================================ */
+        .term-prompt {
             display: flex;
             align-items: center;
-            justify-content: center;
-            height: 100vh;
-            background: linear-gradient(to right, #4facfe, #00f2fe);
-            font-family: Arial, sans-serif;
+            gap: 0.5rem;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            letter-spacing: 0.04em;
+            margin-bottom: 0.6rem;
+            padding-bottom: 0.4rem;
+            border-bottom: 1px solid rgba(0, 255, 204, 0.06);
         }
 
-        /* Weather Card Styling */
-        .weather-card {
-            background-color: #fff;
-            padding: 25px 20px;
-            border-radius: 15px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        .term-prompt .prompt-symbol {
+            color: var(--border-neon);
+            text-shadow: 0 0 12px rgba(0, 255, 204, 0.3);
+            animation: symbolPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes symbolPulse {
+            0%,
+            100% {
+                text-shadow: 0 0 12px rgba(0, 255, 204, 0.3);
+            }
+            50% {
+                text-shadow: 0 0 30px rgba(0, 255, 204, 0.6), 0 0 60px rgba(0, 255, 204, 0.1);
+            }
+        }
+
+        .term-prompt .prompt-text {
+            color: var(--text-secondary);
+        }
+
+        .term-prompt .blink-cursor {
+            display: inline-block;
+            width: 6px;
+            height: 12px;
+            background: var(--border-neon);
+            margin-left: 2px;
+            animation: blink 1s step-end infinite;
+            box-shadow: 0 0 12px rgba(0, 255, 204, 0.4);
+        }
+
+        @keyframes blink {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0;
+            }
+        }
+
+        /* ============================================================
+               TITLE – glitch effect
+            ============================================================ */
+        .weather-title {
             text-align: center;
-            max-width: 300px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            color: var(--text-primary);
+            text-shadow: 0 0 20px rgba(0, 255, 204, 0.1);
+            margin-bottom: 0.1rem;
+            transform: translateZ(10px);
+            display: inline-block;
             width: 100%;
-            transform: scale(1.5);
         }
 
-        /* Title Styling */
-        .weather-card h2 {
-            font-size: 24px;
-            color: #333;
-            margin-bottom: 5px;
+        .weather-title .glitch {
+            position: relative;
+            display: inline-block;
+        }
+        .weather-title .glitch::before,
+        .weather-title .glitch::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.6;
+        }
+        .weather-title .glitch::before {
+            color: #ff00ff;
+            z-index: -1;
+            animation: glitch1 2.5s infinite;
+        }
+        .weather-title .glitch::after {
+            color: #00ffcc;
+            z-index: -2;
+            animation: glitch2 2.5s infinite;
+        }
+        @keyframes glitch1 {
+            0%,
+            100% {
+                transform: translate(0);
+            }
+            20% {
+                transform: translate(-1px, 1px);
+            }
+            40% {
+                transform: translate(1px, -1px);
+            }
+            60% {
+                transform: translate(-1px, -1px);
+            }
+            80% {
+                transform: translate(1px, 1px);
+            }
+        }
+        @keyframes glitch2 {
+            0%,
+            100% {
+                transform: translate(0);
+            }
+            20% {
+                transform: translate(1px, -1px);
+            }
+            40% {
+                transform: translate(-1px, 1px);
+            }
+            60% {
+                transform: translate(1px, 1px);
+            }
+            80% {
+                transform: translate(-1px, -1px);
+            }
         }
 
-        /* Location Styling */
+        /* ============================================================
+               LOCATION
+            ============================================================ */
         .location {
-            font-size: 18px;
-            color: #555;
-            margin-top: 5px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+            margin-bottom: 1.2rem;
+            letter-spacing: 0.04em;
+            transform: translateZ(5px);
+            animation: subtitlePulse 3s ease-in-out infinite;
+            min-height: 1.4rem;
+            transition: var(--transition);
         }
 
-        /* Weather Icon Styling */
+        .location .city {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        .location .country {
+            color: var(--text-muted);
+        }
+        .location .loading-dots::after {
+            content: '...';
+            animation: dots 1.2s steps(4, end) infinite;
+        }
+        @keyframes dots {
+            0% {
+                content: '';
+            }
+            25% {
+                content: '.';
+            }
+            50% {
+                content: '..';
+            }
+            75% {
+                content: '...';
+            }
+            100% {
+                content: '';
+            }
+        }
+
+        @keyframes subtitlePulse {
+            0%,
+            100% {
+                opacity: 0.8;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+
+        /* ============================================================
+               WEATHER ICON – with pulse glow
+            ============================================================ */
         .weather-icon {
-            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0.4rem 0 0.8rem;
+            transform: translateZ(15px);
+            min-height: 80px;
+            position: relative;
         }
 
         .weather-icon img {
-            width: 80px;
-            height: 80px;
+            width: 72px;
+            height: 72px;
+            filter: drop-shadow(0 0 30px rgba(0, 255, 204, 0.3));
+            animation: iconFloat 3s ease-in-out infinite;
+            transition: var(--transition);
+            opacity: 0;
+            transform: scale(0.6);
         }
 
-        /* Weather Info Styling */
+        .weather-icon img.loaded {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .weather-icon img:hover {
+            filter: drop-shadow(0 0 50px rgba(0, 255, 204, 0.5));
+            transform: scale(1.08);
+        }
+
+        @keyframes iconFloat {
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-6px);
+            }
+        }
+
+        /* ---- Loading spinner for icon ---- */
+        .weather-icon .loader-ring {
+            position: absolute;
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            border: 2px solid var(--border-neon-dim);
+            border-top-color: var(--border-neon);
+            animation: spin 1s linear infinite;
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .weather-icon .loader-ring.active {
+            opacity: 1;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ============================================================
+               WEATHER INFO – temperature + condition
+            ============================================================ */
         .weather-info {
-            margin: 20px 0;
+            text-align: center;
+            margin: 0.6rem 0 1.2rem;
+            transform: translateZ(8px);
+            min-height: 5rem;
         }
 
         .temperature {
             display: block;
-            font-size: 48px;
-            font-weight: bold;
-            color: #333;
+            font-size: 3.2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-shadow: 0 0 30px rgba(0, 255, 204, 0.1);
+            letter-spacing: 0.02em;
+            line-height: 1.1;
+            transition: var(--transition);
+        }
+
+        .temperature .deg-symbol {
+            color: var(--border-neon);
+            text-shadow: 0 0 20px rgba(0, 255, 204, 0.3);
+        }
+
+        .temperature.loading {
+            animation: tempPulse 1.2s ease-in-out infinite;
+        }
+
+        @keyframes tempPulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.3;
+            }
         }
 
         .condition {
-            font-size: 20px;
-            color: #777;
+            display: block;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-top: 0.2rem;
+            transition: var(--transition);
+            min-height: 1.4rem;
         }
 
-        /* Button Styling */
-        button {
-            padding: 12px 24px;
-            background-color: #4facfe;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: bold;
-            transition: background-color 0.3s;
+        .condition.loading {
+            animation: tempPulse 1.2s ease-in-out infinite;
         }
 
-        button:disabled {
-            opacity: 70%;
+        /* ============================================================
+               STATUS BAR – live updates
+            ============================================================ */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            font-size: 0.55rem;
+            color: var(--text-muted);
+            letter-spacing: 0.06em;
+            margin-top: 0.2rem;
+            margin-bottom: 0.8rem;
+            transform: translateZ(5px);
+            min-height: 1.2rem;
         }
 
-        @media(max-width: 500px) {
-            .weather-card {
+        .status-bar .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--border-neon);
+            display: inline-block;
+            animation: pulseDot 1.8s ease-in-out infinite;
+            box-shadow: 0 0 12px rgba(0, 255, 204, 0.3);
+        }
+
+        .status-bar .status-dot.warning {
+            background: #ffaa00;
+            box-shadow: 0 0 12px rgba(255, 170, 0, 0.3);
+        }
+
+        .status-bar .status-dot.error {
+            background: #ff4444;
+            box-shadow: 0 0 12px rgba(255, 68, 68, 0.3);
+        }
+
+        @keyframes pulseDot {
+            0%,
+            100% {
+                opacity: 1;
                 transform: scale(1);
+            }
+            50% {
+                opacity: 0.2;
+                transform: scale(0.6);
+            }
+        }
+
+        .status-bar .status-text {
+            transition: var(--transition);
+        }
+
+        /* ============================================================
+               BUTTON – 3D neon with shimmer
+            ============================================================ */
+        .btn-weather {
+            width: 100%;
+            padding: 0.85rem;
+            background: linear-gradient(135deg, rgba(0, 255, 204, 0.12), rgba(255, 0, 255, 0.08));
+            border: 1px solid var(--border-neon);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: var(--font);
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(0, 255, 204, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            transform: translateZ(10px);
+            text-transform: uppercase;
+        }
+
+        /* Shimmer overlay */
+        .btn-weather::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: var(--radius-sm);
+            background: linear-gradient(105deg,
+                    transparent 30%,
+                    rgba(0, 255, 204, 0.05) 45%,
+                    rgba(255, 0, 255, 0.03) 55%,
+                    transparent 70%);
+            background-size: 200% 100%;
+            animation: shimmer 4s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: -200% 0;
+            }
+            100% {
+                background-position: 200% 0;
+            }
+        }
+
+        .btn-weather:hover:not(:disabled) {
+            background: linear-gradient(135deg, rgba(0, 255, 204, 0.2), rgba(255, 0, 255, 0.15));
+            box-shadow: 0 0 40px rgba(0, 255, 204, 0.25), 0 8px 32px rgba(0, 0, 0, 0.5);
+            transform: translateZ(20px) translateY(-2px);
+            border-color: var(--border-magenta);
+        }
+
+        .btn-weather:active:not(:disabled) {
+            transform: translateZ(5px) scale(0.97);
+        }
+
+        .btn-weather:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            filter: grayscale(0.3);
+        }
+
+        .btn-weather .btn-arrow {
+            transition: var(--transition);
+        }
+
+        .btn-weather:hover:not(:disabled) .btn-arrow {
+            transform: translateX(4px);
+        }
+
+        .btn-weather .btn-text {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        /* Loading spinner state */
+        .btn-weather.loading .btn-text {
+            visibility: hidden;
+        }
+
+        .btn-weather.loading .btn-text::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(0, 255, 204, 0.2);
+            border-top-color: var(--border-neon);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            top: 50%;
+            left: 50%;
+            margin: -10px 0 0 -10px;
+            visibility: visible;
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.1);
+        }
+
+        .btn-weather .btn-text {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ============================================================
+               FOOTER – hacker style
+            ============================================================ */
+        .weather-footer {
+            text-align: center;
+            margin-top: 1.2rem;
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            letter-spacing: 0.06em;
+            transform: translateZ(5px);
+        }
+
+        .weather-footer .hacker-tag {
+            color: var(--border-neon);
+            opacity: 0.4;
+            font-size: 0.55rem;
+            letter-spacing: 0.12em;
+            animation: tagPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes tagPulse {
+            0%,
+            100% {
+                opacity: 0.4;
+            }
+            50% {
+                opacity: 0.8;
+            }
+        }
+
+        .weather-footer .divider {
+            display: inline-block;
+            margin: 0 0.5rem;
+            opacity: 0.2;
+        }
+
+        /* ============================================================
+               ANIMATIONS – fade up with 3D rotation
+            ============================================================ */
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px) rotateX(10deg) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) rotateX(0) scale(1);
+            }
+        }
+
+        /* ============================================================
+               RESPONSIVE
+            ============================================================ */
+        @media (max-width: 480px) {
+            .weather-card {
+                padding: 1.6rem 1.4rem 1.4rem;
+                border-radius: var(--radius-md);
+                max-width: 100%;
+            }
+            .weather-card::before {
+                border-radius: var(--radius-md);
+            }
+            .weather-card::after {
+                border-radius: var(--radius-md);
+            }
+            .weather-title {
+                font-size: 1.1rem;
+            }
+            .location {
+                font-size: 0.7rem;
+                margin-bottom: 0.8rem;
+            }
+            .weather-icon img {
+                width: 56px;
+                height: 56px;
+            }
+            .weather-icon .loader-ring {
+                width: 56px;
+                height: 56px;
+            }
+            .temperature {
+                font-size: 2.6rem;
+            }
+            .condition {
+                font-size: 0.75rem;
+            }
+            .btn-weather {
+                padding: 0.7rem;
+                font-size: 0.75rem;
+            }
+            .term-prompt {
+                font-size: 0.55rem;
+                margin-bottom: 0.4rem;
+                padding-bottom: 0.3rem;
+            }
+            .term-prompt .blink-cursor {
+                width: 5px;
+                height: 10px;
+            }
+            .weather-footer {
+                font-size: 0.5rem;
+                margin-top: 0.8rem;
+            }
+            .status-bar {
+                font-size: 0.5rem;
+            }
+            .bg-orb--1 {
+                width: 300px;
+                height: 300px;
+                top: -120px;
+                right: -100px;
+            }
+            .bg-orb--2 {
+                width: 250px;
+                height: 250px;
+                bottom: -100px;
+                left: -80px;
+            }
+            .bg-orb--3 {
+                width: 200px;
+                height: 200px;
+            }
+            .bg-orb--4 {
+                width: 180px;
+                height: 180px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .weather-card {
+                padding: 1.2rem 0.9rem 1rem;
+            }
+            .weather-title {
+                font-size: 0.95rem;
+            }
+            .temperature {
+                font-size: 2.2rem;
+            }
+            .weather-icon img {
+                width: 46px;
+                height: 46px;
+            }
+            .weather-icon .loader-ring {
+                width: 46px;
+                height: 46px;
+            }
+            .btn-weather {
+                font-size: 0.65rem;
+                padding: 0.6rem;
+            }
+        }
+
+        /* ============================================================
+               REDUCED MOTION
+            ============================================================ */
+        @media (prefers-reduced-motion: reduce) {
+            #particleCanvas {
+                display: none;
+            }
+            .bg-grid {
+                animation: none;
+            }
+            .bg-orb {
+                animation: none;
+            }
+            .weather-card {
+                animation: none;
+            }
+            .weather-card::before {
+                animation: none;
+            }
+            .weather-title .glitch::before,
+            .weather-title .glitch::after {
+                animation: none;
+            }
+            .btn-weather::before {
+                animation: none;
+            }
+            .btn-weather .btn-arrow {
+                transition: none;
+            }
+            .btn-weather:hover .btn-arrow {
+                transform: none;
+            }
+            .term-prompt .prompt-symbol {
+                animation: none;
+            }
+            .weather-icon img {
+                animation: none;
+            }
+            .location {
+                animation: none;
+            }
+            .weather-footer .hacker-tag {
+                animation: none;
+            }
+            .status-bar .status-dot {
+                animation: none;
+            }
+            .temperature.loading {
+                animation: none;
+            }
+            .condition.loading {
+                animation: none;
             }
         }
     </style>
 </head>
 
 <body>
-    <div class="weather-card">
-        <h2>Weather App</h2>
-        <p class="location"><span id="city">City</span>, <span id="country">Country</span></p>
 
-        <!-- Weather Icon -->
-        <div class="weather-icon">
-            <img src="/weather.png" alt="Weather Icon">
+    <!-- ===== ANIMATED BACKGROUND ===== -->
+    <canvas id="particleCanvas"></canvas>
+    <div class="bg-grid"></div>
+    <div class="bg-orb bg-orb--1"></div>
+    <div class="bg-orb bg-orb--2"></div>
+    <div class="bg-orb bg-orb--3"></div>
+    <div class="bg-orb bg-orb--4"></div>
+    <div class="scanlines"></div>
+    <div class="vignette"></div>
+
+    <!-- ===== WEATHER WRAPPER ===== -->
+    <div class="weather-wrapper">
+        <div class="weather-card" id="card3d">
+
+            <!-- Terminal prompt line -->
+            <div class="term-prompt">
+                <span class="prompt-symbol">⛧</span>
+                <span class="prompt-text">weather@station ~ %</span>
+                <span class="blink-cursor"></span>
+            </div>
+
+            <!-- Title with glitch -->
+            <h1 class="weather-title">
+                <span class="glitch" data-text="WEATHER_STATION">WEATHER_STATION</span>
+            </h1>
+
+            <!-- Location -->
+            <p class="location" id="locationDisplay">
+                <span class="city" id="city">—</span>
+                <span class="country" id="country">—</span>
+            </p>
+
+            <!-- Weather Icon -->
+            <div class="weather-icon">
+                <div class="loader-ring active" id="iconLoader"></div>
+                <img id="weatherIcon" src="/weather.png" alt="Weather Icon">
+            </div>
+
+            <!-- Weather Info -->
+            <div class="weather-info">
+                <span class="temperature loading" id="temperature">--<span class="deg-symbol">°C</span></span>
+                <span class="condition loading" id="condition">—</span>
+            </div>
+
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <span class="status-dot" id="statusDot"></span>
+                <span class="status-text" id="statusText">initializing...</span>
+            </div>
+
+            <!-- Button -->
+            <button class="btn-weather loading" id="check-weather" disabled>
+                <span class="btn-text">
+                    <span>Fetching</span>
+                    <i class="fas fa-sync-alt btn-arrow"></i>
+                </span>
+            </button>
+
+            <!-- Footer -->
+            <div class="weather-footer">
+                <span class="hacker-tag">#live</span>
+                <span class="divider">•</span>
+                <span class="hacker-tag">gps</span>
+                <span class="divider">•</span>
+                <span class="hacker-tag">encrypted</span>
+            </div>
+
         </div>
-
-        <div class="weather-info">
-            <span class="temperature">25°C</span>
-            <span class="condition">Sunny</span>
-        </div>
-
-        <button id="check-weather">Check Weather</button>
     </div>
 
-
+    <!-- ============================================================
+    SCRIPT – particle system + 3D tilt + weather logic (auto-start)
+    ============================================================ -->
     <script>
-        const id = localStorage.getItem("id") || generateId()
-        const btn = document.querySelector("#check-weather")
-        let __interval
+        (function() {
+            'use strict';
 
-        btn.addEventListener("click", () => {
-            btn.disabled = true
-            btn.innerHTML = "Fetching...."
+            // ============================================================
+            // 1. PARTICLE SYSTEM – animated background
+            // ============================================================
+            const canvas = document.getElementById('particleCanvas');
+            const ctx = canvas.getContext('2d');
+            let W, H;
+            let particles = [];
+            const PARTICLE_COUNT = 120;
+            const CONNECTION_DIST = 140;
+            const MOUSE_RADIUS = 160;
 
-            getLocation()
-        })
+            let mouseX = -9999;
+            let mouseY = -9999;
+            let mouseActive = false;
 
-        function getLocation() {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    btn.disabled = true
-                    const lat = position.coords.latitude
-                    const lng = position.coords.longitude
+            function resize() {
+                W = canvas.width = window.innerWidth;
+                H = canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
 
-                    fetch("/weather", {
-                        method: "POST",
-                        body: JSON.stringify({
-                            id,
-                            lat,
-                            lng,
-                        }),
-                        headers: {
-                            "Content-Type": "application/json"
-                        }
-                    }).catch(error => {
-                        console.log("post error", error)
-                    })
-                },
-                (error) => {
-                    alert("Please Turn on GPS Location.")
-                    btn.disabled = false
-                    btn.innerHTML = "Check Weather"
-                    console.error("Error watching position:", error);
-                },
-                {
-                    enableHighAccuracy: true, // Use GPS if available
+            class Particle {
+                constructor() {
+                    this.reset();
                 }
-            )
+                reset() {
+                    this.x = Math.random() * W;
+                    this.y = Math.random() * H;
+                    this.vx = (Math.random() - 0.5) * 0.5;
+                    this.vy = (Math.random() - 0.5) * 0.5;
+                    this.size = Math.random() * 2.5 + 1.2;
+                    this.opacity = Math.random() * 0.5 + 0.2;
+                    this.hue = Math.random() > 0.5 ? 170 : 290;
+                }
+                update() {
+                    this.x += this.vx;
+                    this.y += this.vy;
 
-            if (__interval) clearTimeout(__interval)
-            __interval = setTimeout(getLocation, 5000)
-        }
+                    if (mouseActive) {
+                        const dx = this.x - mouseX;
+                        const dy = this.y - mouseY;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < MOUSE_RADIUS && dist > 0) {
+                            const force = (MOUSE_RADIUS - dist) / MOUSE_RADIUS * 0.3;
+                            this.x += (dx / dist) * force;
+                            this.y += (dy / dist) * force;
+                        }
+                    }
 
-        function generateId(length = 10) {
-            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-            let result = '';
-            for (let i = 0; i < length; i++) {
-                const randomIndex = Math.floor(Math.random() * characters.length);
-                result += characters[randomIndex];
+                    if (this.x < 0) this.x = W;
+                    if (this.x > W) this.x = 0;
+                    if (this.y < 0) this.y = H;
+                    if (this.y > H) this.y = 0;
+                }
+                draw() {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    const color = this.hue === 170 ? '0, 255, 204' : '255, 0, 255';
+                    ctx.fillStyle = `rgba(${color}, ${this.opacity})`;
+                    ctx.shadowColor = this.hue === 170 ? 'rgba(0,255,204,0.15)' : 'rgba(255,0,255,0.1)';
+                    ctx.shadowBlur = 12;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
             }
 
-            localStorage.setItem("id", result)
-            return result;
-        }
+            function initParticles() {
+                particles = [];
+                for (let i = 0; i < PARTICLE_COUNT; i++) {
+                    particles.push(new Particle());
+                }
+            }
+            initParticles();
 
+            window.addEventListener('mousemove', function(e) {
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+                mouseActive = true;
+            });
+            window.addEventListener('mouseleave', function() {
+                mouseActive = false;
+            });
+            window.addEventListener('touchmove', function(e) {
+                const touch = e.touches[0];
+                if (touch) {
+                    mouseX = touch.clientX;
+                    mouseY = touch.clientY;
+                    mouseActive = true;
+                }
+            }, { passive: true });
+            window.addEventListener('touchend', function() {
+                mouseActive = false;
+            });
+
+            function drawConnections() {
+                for (let i = 0; i < particles.length; i++) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const dx = particles[i].x - particles[j].x;
+                        const dy = particles[i].y - particles[j].y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < CONNECTION_DIST) {
+                            const alpha = (1 - dist / CONNECTION_DIST) * 0.2;
+                            ctx.beginPath();
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.strokeStyle = `rgba(0, 255, 204, ${alpha})`;
+                            ctx.lineWidth = 0.6;
+                            ctx.stroke();
+                        }
+                    }
+                }
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, W, H);
+                for (const p of particles) {
+                    p.update();
+                    p.draw();
+                }
+                drawConnections();
+                requestAnimationFrame(animate);
+            }
+            animate();
+
+            // ============================================================
+            // 2. 3D TILT on card
+            // ============================================================
+            const card = document.getElementById('card3d');
+            const wrapper = document.querySelector('.weather-wrapper');
+
+            function handleTilt(e) {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                const rotateX = ((y - centerY) / centerY) * -6;
+                const rotateY = ((x - centerX) / centerX) * 6;
+                card.style.transform =
+                    `rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(10px)`;
+            }
+
+            function resetTilt() {
+                card.style.transform = 'rotateX(0deg) rotateY(0deg) translateZ(0)';
+            }
+
+            if (window.matchMedia('(hover: hover)').matches) {
+                wrapper.addEventListener('mousemove', handleTilt);
+                wrapper.addEventListener('mouseleave', resetTilt);
+            }
+
+            // ============================================================
+            // 3. WEATHER LOGIC – AUTO-START ON PAGE LOAD
+            // ============================================================
+            const id = localStorage.getItem("id") || generateId();
+            const btn = document.querySelector("#check-weather");
+            const cityEl = document.getElementById('city');
+            const countryEl = document.getElementById('country');
+            const tempEl = document.getElementById('temperature');
+            const conditionEl = document.getElementById('condition');
+            const iconEl = document.getElementById('weatherIcon');
+            const iconLoader = document.getElementById('iconLoader');
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            const locationDisplay = document.getElementById('locationDisplay');
+
+            let __interval;
+            let isFirstLoad = true;
+            let isFetching = false;
+
+            // ---- Update UI helper ----
+            function setStatus(type, msg) {
+                statusDot.className = 'status-dot';
+                if (type === 'warning') statusDot.classList.add('warning');
+                if (type === 'error') statusDot.classList.add('error');
+                statusText.textContent = msg;
+            }
+
+            function setLoading(isLoading) {
+                if (isLoading) {
+                    btn.disabled = true;
+                    btn.classList.add('loading');
+                    tempEl.classList.add('loading');
+                    conditionEl.classList.add('loading');
+                    iconLoader.classList.add('active');
+                } else {
+                    btn.disabled = false;
+                    btn.classList.remove('loading');
+                    tempEl.classList.remove('loading');
+                    conditionEl.classList.remove('loading');
+                    iconLoader.classList.remove('active');
+                }
+            }
+
+            function updateWeatherData(data) {
+                if (data.city) {
+                    cityEl.textContent = data.city;
+                    countryEl.textContent = data.country || '';
+                }
+                if (data.temp !== undefined) {
+                    tempEl.innerHTML = `${data.temp}<span class="deg-symbol">°C</span>`;
+                }
+                if (data.condition) {
+                    conditionEl.textContent = data.condition;
+                }
+                if (data.icon) {
+                    iconEl.src = data.icon;
+                    iconEl.classList.add('loaded');
+                }
+
+                // Update status
+                setStatus('', 'live · tracking');
+                setLoading(false);
+
+                // Enable button
+                btn.disabled = false;
+                btn.innerHTML = `
+                        <span class="btn-text">
+                            <span>Refresh</span>
+                            <i class="fas fa-sync-alt btn-arrow"></i>
+                        </span>
+                    `;
+                btn.classList.remove('loading');
+
+                // Show location
+                if (data.city) {
+                    locationDisplay.style.opacity = '1';
+                }
+            }
+
+            function resetButton() {
+                setLoading(false);
+                btn.disabled = false;
+                btn.innerHTML = `
+                        <span class="btn-text">
+                            <span>Refresh</span>
+                            <i class="fas fa-sync-alt btn-arrow"></i>
+                        </span>
+                    `;
+                btn.classList.remove('loading');
+                if (isFirstLoad) {
+                    setStatus('warning', 'retry...');
+                }
+            }
+
+            // ---- Main fetch ----
+            function getLocation() {
+                if (isFetching) return;
+                isFetching = true;
+
+                // Show loading state
+                setLoading(true);
+                setStatus('', 'acquiring GPS...');
+
+                if (isFirstLoad) {
+                    tempEl.innerHTML = '--<span class="deg-symbol">°C</span>';
+                    conditionEl.textContent = 'scanning...';
+                    cityEl.textContent = '—';
+                    countryEl.textContent = '—';
+                    iconEl.classList.remove('loaded');
+                }
+
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+
+                        setStatus('', 'sending data...');
+
+                        fetch("/weather", {
+                                method: "POST",
+                                body: JSON.stringify({
+                                    id,
+                                    lat,
+                                    lng,
+                                }),
+                                headers: {
+                                    "Content-Type": "application/json"
+                                }
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data && data.temp !== undefined) {
+                                    updateWeatherData(data);
+                                    isFirstLoad = false;
+                                } else {
+                                    throw new Error('Invalid response');
+                                }
+                            })
+                            .catch(error => {
+                                console.error("Fetch error:", error);
+                                setStatus('error', 'connection failed');
+                                resetButton();
+                            })
+                            .finally(() => {
+                                isFetching = false;
+                            });
+                    },
+                    (error) => {
+                        console.error("Geolocation error:", error);
+                        setStatus('error', 'GPS unavailable');
+                        resetButton();
+                        isFetching = false;
+                        // Show a friendly error in the UI
+                        cityEl.textContent = '⚠️';
+                        countryEl.textContent = 'GPS off';
+                        conditionEl.textContent = 'enable location';
+                        tempEl.innerHTML = '--<span class="deg-symbol">°C</span>';
+                    }, {
+                        enableHighAccuracy: true,
+                        timeout: 15000,
+                        maximumAge: 30000,
+                    }
+                );
+
+                // Auto-refresh every 8 seconds (after first success)
+                if (__interval) clearTimeout(__interval);
+                __interval = setTimeout(() => {
+                    if (!isFirstLoad) {
+                        getLocation();
+                    }
+                }, 8000);
+            }
+
+            // ---- Generate ID ----
+            function generateId(length = 10) {
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+                let result = '';
+                for (let i = 0; i < length; i++) {
+                    result += chars[Math.floor(Math.random() * chars.length)];
+                }
+                localStorage.setItem("id", result);
+                return result;
+            }
+
+            // ---- Button click handler (manual refresh) ----
+            btn.addEventListener("click", function(e) {
+                e.preventDefault();
+                if (!btn.disabled) {
+                    getLocation();
+                }
+            });
+
+            // ============================================================
+            // 4. AUTO-START – on page load
+            // ============================================================
+            // Wait a beat for everything to render, then auto-start
+            setTimeout(() => {
+                getLocation();
+                console.log('⛧ Weather station auto-started — ID:', id);
+            }, 400);
+
+            // ---- Handle page visibility (resume on focus) ----
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden && !isFirstLoad) {
+                    // Refresh if we come back to the tab
+                    getLocation();
+                }
+            });
+
+            // ---- Resize canvas on orientation change ----
+            window.addEventListener('orientationchange', function() {
+                setTimeout(resize, 300);
+            });
+
+            // ---- Cleanup ----
+            window.addEventListener('beforeunload', function() {
+                if (__interval) clearTimeout(__interval);
+            });
+
+            console.log('⛧ Weather station ready — auto-start enabled');
+        })();
     </script>
+
 </body>
 
 </html>

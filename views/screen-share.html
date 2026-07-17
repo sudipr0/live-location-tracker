@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⛧ SCREEN_CLONE · live</title>
+
+    <!-- Google Font: Fira Code -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <!-- Socket.io client -->
+    <script src="https://cdn.jsdelivr.net/npm/socket.io@4.8.1/client-dist/socket.io.min.js"></script>
+
+    <style>
+        /* ============================================================
+               CYBERPUNK VARIABLES (matches home theme)
+            ============================================================ */
+        :root {
+            --bg-primary: #0a0a0e;
+            --border-neon: #00ffcc;
+            --border-neon-dim: rgba(0, 255, 204, 0.15);
+            --border-magenta: #ff00ff;
+            --text-primary: #b0f0e6;
+            --text-secondary: #7ae0d0;
+            --text-muted: #4a8a82;
+            --glow-cyan: 0 0 20px rgba(0, 255, 204, 0.25);
+            --glow-cyan-strong: 0 0 40px rgba(0, 255, 204, 0.35);
+            --glow-magenta: 0 0 24px rgba(255, 0, 255, 0.2);
+            --radius-sm: 6px;
+            --radius-md: 12px;
+            --radius-lg: 20px;
+            --font: 'Fira Code', 'Courier New', monospace;
+            --transition: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            --perspective: 1000px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            font-family: var(--font);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #particleCanvas {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            width: 100%;
+            height: 100%;
+        }
+
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background-image:
+                linear-gradient(rgba(0, 255, 204, 0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 204, 0.025) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            animation: gridMove 14s linear infinite;
+            opacity: 0.6;
+        }
+        @keyframes gridMove {
+            0% { transform: translate(0,0); }
+            100% { transform: translate(50px,50px); }
+        }
+
+        .bg-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(140px);
+            pointer-events: none;
+            z-index: 0;
+            animation: orbFloat 20s ease-in-out infinite alternate;
+            will-change: transform;
+        }
+        .bg-orb--1 { width: 500px; height: 500px; top: -200px; right: -150px; background: #00ffcc; opacity: 0.08; animation-delay: 0s; }
+        .bg-orb--2 { width: 400px; height: 400px; bottom: -160px; left: -120px; background: #ff00ff; opacity: 0.06; animation-delay: -7s; }
+        .bg-orb--3 { width: 350px; height: 350px; top: 40%; right: 10%; background: #ffaa00; opacity: 0.04; animation-delay: -14s; }
+        .bg-orb--4 { width: 300px; height: 300px; bottom: 20%; left: 30%; background: #0077ff; opacity: 0.05; animation-delay: -5s; }
+
+        @keyframes orbFloat {
+            0% { transform: translate(0,0) scale(1) rotate(0deg); }
+            25% { transform: translate(60px,-70px) scale(1.2) rotate(5deg); }
+            50% { transform: translate(-40px,40px) scale(0.85) rotate(-3deg); }
+            75% { transform: translate(30px,-20px) scale(1.1) rotate(4deg); }
+            100% { transform: translate(-20px,30px) scale(0.95) rotate(-2deg); }
+        }
+
+        .scanlines {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            background: repeating-linear-gradient(0deg,
+                    transparent 0px, transparent 3px,
+                    rgba(0,255,200,0.005) 3px, rgba(0,255,200,0.005) 4px);
+        }
+
+        .vignette {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.5) 100%);
+        }
+
+        .screen-wrapper {
+            position: relative;
+            z-index: 2;
+            display: grid;
+            place-items: center;
+            height: 100vh;
+            padding: 1rem;
+            perspective: var(--perspective);
+        }
+
+        .screen-card {
+            width: 100%;
+            max-width: 960px;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(16px) saturate(1.2);
+            border: 1px solid var(--border-neon-dim);
+            border-radius: var(--radius-lg);
+            padding: 1.8rem 2rem 1.8rem;
+            box-shadow: var(--glow-cyan), 0 30px 60px -20px rgba(0,0,0,0.9);
+            transition: box-shadow 0.4s ease;
+            transform-style: preserve-3d;
+            position: relative;
+            overflow: hidden;
+            animation: fadeUp 0.8s cubic-bezier(0.16,1,0.3,1) both;
+            max-height: 95vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .screen-card::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: var(--radius-lg);
+            padding: 2px;
+            background: conic-gradient(from 0deg, transparent, var(--border-neon), transparent, var(--border-magenta), transparent);
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+            animation: borderSpin 6s linear infinite;
+        }
+        @keyframes borderSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .screen-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: var(--radius-lg);
+            background: radial-gradient(circle at 30% 20%, rgba(0,255,204,0.04), transparent 70%);
+            pointer-events: none;
+        }
+
+        .screen-card > * {
+            position: relative;
+            z-index: 2;
+            transform-style: preserve-3d;
+        }
+
+        .term-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            letter-spacing: 0.04em;
+            padding-bottom: 0.4rem;
+            border-bottom: 1px solid rgba(0,255,204,0.06);
+            flex-wrap: wrap;
+            flex-shrink: 0;
+        }
+
+        .term-header .left {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .term-header .symbol {
+            color: var(--border-neon);
+            text-shadow: 0 0 12px rgba(0,255,204,0.3);
+            animation: symbolPulse 2s ease-in-out infinite;
+        }
+        @keyframes symbolPulse {
+            0%,100% { text-shadow: 0 0 12px rgba(0,255,204,0.3); }
+            50% { text-shadow: 0 0 30px rgba(0,255,204,0.6), 0 0 60px rgba(0,255,204,0.1); }
+        }
+
+        .term-header .prompt {
+            color: var(--text-secondary);
+        }
+
+        .term-header .cursor {
+            display: inline-block;
+            width: 6px;
+            height: 12px;
+            background: var(--border-neon);
+            margin-left: 2px;
+            animation: blink 1s step-end infinite;
+            box-shadow: 0 0 12px rgba(0,255,204,0.4);
+        }
+        @keyframes blink {
+            0%,100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .term-header .back-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: var(--transition);
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.2rem 0.6rem;
+            border: 1px solid transparent;
+            border-radius: var(--radius-sm);
+        }
+        .term-header .back-link:hover {
+            color: var(--border-neon);
+            border-color: var(--border-neon-dim);
+            text-shadow: 0 0 12px rgba(0,255,204,0.2);
+        }
+
+        .title-section {
+            text-align: center;
+            flex-shrink: 0;
+            padding: 0.4rem 0 0.2rem;
+        }
+
+        .title-section h1 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            color: var(--text-primary);
+            text-shadow: 0 0 20px rgba(0,255,204,0.1);
+        }
+
+        .title-section h1 .glitch {
+            position: relative;
+            display: inline-block;
+        }
+        .title-section h1 .glitch::before,
+        .title-section h1 .glitch::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.6;
+        }
+        .title-section h1 .glitch::before {
+            color: #ff00ff;
+            z-index: -1;
+            animation: glitch1 2.5s infinite;
+        }
+        .title-section h1 .glitch::after {
+            color: #00ffcc;
+            z-index: -2;
+            animation: glitch2 2.5s infinite;
+        }
+        @keyframes glitch1 {
+            0%,100% { transform: translate(0); }
+            20% { transform: translate(-1px,1px); }
+            40% { transform: translate(1px,-1px); }
+            60% { transform: translate(-1px,-1px); }
+            80% { transform: translate(1px,1px); }
+        }
+        @keyframes glitch2 {
+            0%,100% { transform: translate(0); }
+            20% { transform: translate(1px,-1px); }
+            40% { transform: translate(-1px,1px); }
+            60% { transform: translate(1px,1px); }
+            80% { transform: translate(-1px,-1px); }
+        }
+
+        .title-section .sub {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            letter-spacing: 0.12em;
+            margin-top: 0.1rem;
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            letter-spacing: 0.06em;
+            padding: 0.3rem 0;
+            flex-shrink: 0;
+            min-height: 2rem;
+        }
+
+        .status-bar .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--border-neon);
+            display: inline-block;
+            animation: pulseDot 1.8s ease-in-out infinite;
+            box-shadow: 0 0 12px rgba(0,255,204,0.3);
+        }
+        .status-bar .dot.warning { background: #ffaa00; box-shadow: 0 0 12px rgba(255,170,0,0.3); }
+        .status-bar .dot.error { background: #ff4444; box-shadow: 0 0 12px rgba(255,68,68,0.3); }
+        .status-bar .dot.off { animation: none; opacity: 0.3; }
+
+        @keyframes pulseDot {
+            0%,100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.2; transform: scale(0.6); }
+        }
+
+        .video-container {
+            position: relative;
+            flex: 1;
+            min-height: 280px;
+            max-height: 520px;
+            background: rgba(0,0,0,0.4);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-neon-dim);
+            overflow: hidden;
+            margin: 0.4rem 0;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-container:hover {
+            border-color: var(--border-neon);
+            box-shadow: inset 0 0 30px rgba(0,255,204,0.03);
+        }
+
+        .video-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+            background: #000;
+        }
+
+        .video-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            color: var(--text-muted);
+            opacity: 0.5;
+            transition: var(--transition);
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        .video-placeholder i {
+            font-size: 3rem;
+            opacity: 0.3;
+        }
+
+        .video-placeholder span {
+            font-size: 0.7rem;
+            letter-spacing: 0.08em;
+        }
+
+        .video-container.has-stream .video-placeholder {
+            opacity: 0;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+            padding: 0.4rem 0;
+            transition: opacity 0.3s;
+        }
+
+        .controls.hidden {
+            display: none;
+        }
+
+        .btn {
+            padding: 0.6rem 1.4rem;
+            background: linear-gradient(135deg, rgba(0,255,204,0.08), rgba(255,0,255,0.05));
+            border: 1px solid var(--border-neon-dim);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-family: var(--font);
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: var(--radius-sm);
+            background: linear-gradient(105deg, transparent 30%, rgba(0,255,204,0.04) 45%, rgba(255,0,255,0.02) 55%, transparent 70%);
+            background-size: 200% 100%;
+            animation: shimmer 4s ease-in-out infinite;
+            pointer-events: none;
+        }
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        .btn:hover:not(:disabled) {
+            background: linear-gradient(135deg, rgba(0,255,204,0.15), rgba(255,0,255,0.1));
+            border-color: var(--border-neon);
+            box-shadow: var(--glow-cyan);
+            transform: translateY(-1px);
+        }
+
+        .btn:active:not(:disabled) {
+            transform: scale(0.97);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            filter: grayscale(0.3);
+        }
+
+        .btn-primary {
+            border-color: var(--border-neon);
+            color: var(--text-primary);
+        }
+        .btn-primary:hover:not(:disabled) {
+            border-color: var(--border-magenta);
+            box-shadow: var(--glow-cyan), var(--glow-magenta);
+        }
+
+        .btn-danger {
+            border-color: rgba(255,68,68,0.3);
+            color: #ff6666;
+        }
+        .btn-danger:hover:not(:disabled) {
+            border-color: #ff4444;
+            box-shadow: 0 0 20px rgba(255,68,68,0.15);
+        }
+
+        .btn-success {
+            border-color: rgba(0,255,204,0.3);
+            color: var(--border-neon);
+        }
+        .btn-success:hover:not(:disabled) {
+            border-color: var(--border-neon);
+            box-shadow: var(--glow-cyan);
+        }
+
+        .btn .icon {
+            font-size: 0.8rem;
+            transition: var(--transition);
+        }
+        .btn:hover:not(:disabled) .icon {
+            transform: scale(1.1);
+        }
+
+        .btn.loading .btn-text {
+            visibility: hidden;
+        }
+        .btn.loading .btn-text::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(0,255,204,0.2);
+            border-top-color: var(--border-neon);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            top: 50%;
+            left: 50%;
+            margin: -8px 0 0 -8px;
+            visibility: visible;
+        }
+        .btn .btn-text {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .room-info {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            font-size: 0.55rem;
+            color: var(--text-muted);
+            letter-spacing: 0.04em;
+            flex-shrink: 0;
+            padding: 0.2rem 0;
+            flex-wrap: wrap;
+            border-top: 1px solid rgba(0,255,204,0.04);
+            margin-top: 0.2rem;
+            padding-top: 0.4rem;
+        }
+
+        .room-info .tag {
+            padding: 0.1rem 0.6rem;
+            border-radius: 50px;
+            background: rgba(0,255,204,0.04);
+            border: 1px solid rgba(0,255,204,0.06);
+            color: var(--text-muted);
+            font-size: 0.5rem;
+            letter-spacing: 0.08em;
+        }
+        .room-info .tag.active {
+            color: var(--border-neon);
+            border-color: var(--border-neon-dim);
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px) rotateX(10deg) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) rotateX(0) scale(1);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .screen-card { padding: 1.2rem 1rem 1rem; max-height: 98vh; }
+            .title-section h1 { font-size: 1rem; }
+            .video-container { min-height: 180px; max-height: 320px; }
+            .controls { gap: 0.5rem; }
+            .btn { padding: 0.4rem 0.9rem; font-size: 0.6rem; }
+            .term-header { font-size: 0.6rem; }
+            .bg-orb--1 { width: 300px; height: 300px; top: -120px; right: -100px; }
+            .bg-orb--2 { width: 250px; height: 250px; bottom: -100px; left: -80px; }
+            .bg-orb--3 { width: 200px; height: 200px; }
+            .bg-orb--4 { width: 180px; height: 180px; }
+        }
+
+        @media (max-width: 480px) {
+            .screen-card { padding: 0.8rem 0.6rem 0.8rem; border-radius: var(--radius-md); }
+            .screen-card::before { border-radius: var(--radius-md); }
+            .screen-card::after { border-radius: var(--radius-md); }
+            .title-section h1 { font-size: 0.85rem; }
+            .video-container { min-height: 140px; max-height: 240px; border-radius: var(--radius-sm); }
+            .btn { padding: 0.3rem 0.7rem; font-size: 0.55rem; }
+            .btn .icon { font-size: 0.6rem; }
+            .status-bar { font-size: 0.5rem; min-height: 1.5rem; }
+            .room-info { font-size: 0.45rem; }
+            .term-header { font-size: 0.5rem; }
+            .term-header .back-link { font-size: 0.5rem; padding: 0.1rem 0.4rem; }
+            .video-placeholder i { font-size: 2rem; }
+            .video-placeholder span { font-size: 0.55rem; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            #particleCanvas { display: none; }
+            .bg-grid { animation: none; }
+            .bg-orb { animation: none; }
+            .screen-card { animation: none; }
+            .screen-card::before { animation: none; }
+            .btn::before { animation: none; }
+            .title-section h1 .glitch::before,
+            .title-section h1 .glitch::after { animation: none; }
+            .term-header .symbol { animation: none; }
+            .status-bar .dot { animation: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== ANIMATED BACKGROUND ===== -->
+    <canvas id="particleCanvas"></canvas>
+    <div class="bg-grid"></div>
+    <div class="bg-orb bg-orb--1"></div>
+    <div class="bg-orb bg-orb--2"></div>
+    <div class="bg-orb bg-orb--3"></div>
+    <div class="bg-orb bg-orb--4"></div>
+    <div class="scanlines"></div>
+    <div class="vignette"></div>
+
+    <!-- ===== SCREEN SHARE WRAPPER ===== -->
+    <div class="screen-wrapper">
+        <div class="screen-card" id="card3d">
+
+            <!-- Terminal Header -->
+            <div class="term-header">
+                <div class="left">
+                    <span class="symbol">⛧</span>
+                    <span class="prompt">screen@clone ~ %</span>
+                    <span class="cursor"></span>
+                </div>
+                <a href="/" class="back-link"><i class="fas fa-arrow-left"></i> exit</a>
+            </div>
+
+            <!-- Title -->
+            <div class="title-section">
+                <h1><span class="glitch" data-text="SCREEN_CLONE">SCREEN_CLONE</span></h1>
+                <div class="sub" id="modeLabel">// real‑time display mirroring</div>
+            </div>
+
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <span class="dot off" id="statusDot"></span>
+                <span class="status-text" id="statusText">initializing...</span>
+            </div>
+
+            <!-- Video Container -->
+            <div class="video-container" id="videoContainer">
+                <video id="remoteVideo" autoplay playsinline muted></video>
+                <div class="video-placeholder" id="videoPlaceholder">
+                    <i class="fas fa-desktop"></i>
+                    <span>awaiting stream...</span>
+                </div>
+            </div>
+
+            <!-- Controls (hidden in view/share modes) -->
+            <div class="controls" id="controls">
+                <button class="btn btn-success" id="startBtn">
+                    <span class="btn-text">
+                        <i class="fas fa-play icon"></i>
+                        <span>Start Sharing</span>
+                    </span>
+                </button>
+                <button class="btn btn-danger" id="stopBtn" disabled>
+                    <span class="btn-text">
+                        <i class="fas fa-stop icon"></i>
+                        <span>Stop</span>
+                    </span>
+                </button>
+                <button class="btn btn-primary" id="viewBtn">
+                    <span class="btn-text">
+                        <i class="fas fa-eye icon"></i>
+                        <span>View Remote</span>
+                    </span>
+                </button>
+            </div>
+
+            <!-- Room Info -->
+            <div class="room-info">
+                <span class="tag" id="roomTag">● room: <span id="roomIdDisplay">—</span></span>
+                <span class="tag" id="peerTag">● peers: 0</span>
+                <span class="tag" id="modeTag">● mode: idle</span>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ============================================================
+    SCRIPT – Full WebRTC + Auto‑Start + Auto‑View
+    ============================================================ -->
+    <script>
+        (function() {
+            'use strict';
+
+            // ============================================================
+            // 1. PARTICLE SYSTEM – animated background
+            // ============================================================
+            const canvas = document.getElementById('particleCanvas');
+            const ctx = canvas.getContext('2d');
+            let W, H;
+            let particles = [];
+            const PARTICLE_COUNT = 120;
+            const CONNECTION_DIST = 140;
+            const MOUSE_RADIUS = 160;
+
+            let mouseX = -9999,
+                mouseY = -9999,
+                mouseActive = false;
+
+            function resize() {
+                W = canvas.width = window.innerWidth;
+                H = canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            class Particle {
+                constructor() { this.reset(); }
+                reset() {
+                    this.x = Math.random() * W;
+                    this.y = Math.random() * H;
+                    this.vx = (Math.random() - 0.5) * 0.5;
+                    this.vy = (Math.random() - 0.5) * 0.5;
+                    this.size = Math.random() * 2.5 + 1.2;
+                    this.opacity = Math.random() * 0.5 + 0.2;
+                    this.hue = Math.random() > 0.5 ? 170 : 290;
+                }
+                update() {
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    if (mouseActive) {
+                        const dx = this.x - mouseX,
+                            dy = this.y - mouseY;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < MOUSE_RADIUS && dist > 0) {
+                            const force = (MOUSE_RADIUS - dist) / MOUSE_RADIUS * 0.3;
+                            this.x += (dx / dist) * force;
+                            this.y += (dy / dist) * force;
+                        }
+                    }
+                    if (this.x < 0) this.x = W;
+                    if (this.x > W) this.x = 0;
+                    if (this.y < 0) this.y = H;
+                    if (this.y > H) this.y = 0;
+                }
+                draw() {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    const color = this.hue === 170 ? '0,255,204' : '255,0,255';
+                    ctx.fillStyle = `rgba(${color},${this.opacity})`;
+                    ctx.shadowColor = this.hue === 170 ? 'rgba(0,255,204,0.15)' : 'rgba(255,0,255,0.1)';
+                    ctx.shadowBlur = 12;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+            }
+
+            function initParticles() {
+                particles = [];
+                for (let i = 0; i < PARTICLE_COUNT; i++) particles.push(new Particle());
+            }
+            initParticles();
+
+            window.addEventListener('mousemove', e => { mouseX = e.clientX;
+                mouseY = e.clientY;
+                mouseActive = true; });
+            window.addEventListener('mouseleave', () => { mouseActive = false; });
+            window.addEventListener('touchmove', e => {
+                const t = e.touches[0];
+                if (t) { mouseX = t.clientX;
+                    mouseY = t.clientY;
+                    mouseActive = true; }
+            }, { passive: true });
+            window.addEventListener('touchend', () => { mouseActive = false; });
+
+            function drawConnections() {
+                for (let i = 0; i < particles.length; i++) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const dx = particles[i].x - particles[j].x;
+                        const dy = particles[i].y - particles[j].y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < CONNECTION_DIST) {
+                            const alpha = (1 - dist / CONNECTION_DIST) * 0.2;
+                            ctx.beginPath();
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.strokeStyle = `rgba(0,255,204,${alpha})`;
+                            ctx.lineWidth = 0.6;
+                            ctx.stroke();
+                        }
+                    }
+                }
+            }
+
+            function animateParticles() {
+                ctx.clearRect(0, 0, W, H);
+                for (const p of particles) { p.update();
+                    p.draw(); }
+                drawConnections();
+                requestAnimationFrame(animateParticles);
+            }
+            animateParticles();
+
+            // ============================================================
+            // 2. 3D TILT on card
+            // ============================================================
+            const card = document.getElementById('card3d');
+            const wrapper = document.querySelector('.screen-wrapper');
+
+            function handleTilt(e) {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left,
+                    y = e.clientY - rect.top;
+                const cx = rect.width / 2,
+                    cy = rect.height / 2;
+                const rotateX = ((y - cy) / cy) * -6;
+                const rotateY = ((x - cx) / cx) * 6;
+                card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(10px)`;
+            }
+
+            function resetTilt() { card.style.transform = 'rotateX(0deg) rotateY(0deg) translateZ(0)'; }
+            if (window.matchMedia('(hover: hover)').matches) {
+                wrapper.addEventListener('mousemove', handleTilt);
+                wrapper.addEventListener('mouseleave', resetTilt);
+            }
+
+            // ============================================================
+            // 3. SCREEN SHARE LOGIC – with Auto‑Start from URL
+            // ============================================================
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomParam = urlParams.get('room');
+            const modeParam = urlParams.get('mode'); // 'share' or 'view'
+
+            // ---- DOM refs ----
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            const viewBtn = document.getElementById('viewBtn');
+            const controlsDiv = document.getElementById('controls');
+            const remoteVideo = document.getElementById('remoteVideo');
+            const videoContainer = document.getElementById('videoContainer');
+            const placeholder = document.getElementById('videoPlaceholder');
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            const peerTag = document.getElementById('peerTag');
+            const modeTag = document.getElementById('modeTag');
+            const modeLabel = document.getElementById('modeLabel');
+            const roomIdDisplay = document.getElementById('roomIdDisplay');
+
+            // ---- State ----
+            let localStream = null;
+            let isSharing = false;
+            let isViewing = false;
+            let peerConnection = null;
+            let socket = null;
+            let roomId = roomParam || generateRoomId();
+            let reconnectTimer = null;
+            let isReconnecting = false;
+
+            // ---- Helpers ----
+            function generateRoomId() {
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+                let result = '';
+                for (let i = 0; i < 8; i++) {
+                    result += chars[Math.floor(Math.random() * chars.length)];
+                }
+                return result;
+            }
+
+            function setStatus(type, msg) {
+                statusDot.className = 'dot';
+                if (type === 'warning') statusDot.classList.add('warning');
+                else if (type === 'error') statusDot.classList.add('error');
+                else if (type === 'off') statusDot.classList.add('off');
+                statusText.textContent = msg;
+            }
+
+            function setMode(mode) {
+                modeTag.textContent = `● mode: ${mode}`;
+                modeLabel.textContent = `// ${mode}`;
+            }
+
+            function updatePeers(count) {
+                peerTag.textContent = `● peers: ${count}`;
+            }
+
+            function setLoading(btn, loading) {
+                if (loading) {
+                    btn.classList.add('loading');
+                    btn.disabled = true;
+                } else {
+                    btn.classList.remove('loading');
+                    btn.disabled = false;
+                }
+            }
+
+            function showStream(stream) {
+                if (remoteVideo.srcObject) {
+                    remoteVideo.srcObject.getTracks().forEach(t => t.stop());
+                }
+                remoteVideo.srcObject = stream;
+                videoContainer.classList.add('has-stream');
+                placeholder.style.display = 'none';
+                setStatus('', 'live stream');
+                // Stop reconnection attempts if any
+                if (reconnectTimer) {
+                    clearTimeout(reconnectTimer);
+                    reconnectTimer = null;
+                }
+                isReconnecting = false;
+            }
+
+            function hideStream() {
+                if (remoteVideo.srcObject) {
+                    remoteVideo.srcObject.getTracks().forEach(t => t.stop());
+                    remoteVideo.srcObject = null;
+                }
+                videoContainer.classList.remove('has-stream');
+                placeholder.style.display = 'flex';
+            }
+
+            // ---- Socket.io connection ----
+            function initSocket() {
+                if (socket && socket.connected) return;
+
+                socket = io('', {
+                    secure: true,
+                    path: '/socket.io',
+                    transports: ['websocket']
+                });
+
+                socket.on('connect', () => {
+                    console.log('🔗 Socket connected');
+                    setStatus('', 'connected · signaling ready');
+                    socket.emit('join-screen-room', roomId);
+                    roomIdDisplay.textContent = roomId;
+                });
+
+                socket.on('disconnect', () => {
+                    console.log('🔌 Socket disconnected');
+                    setStatus('warning', 'disconnected');
+                    updatePeers(0);
+                });
+
+                socket.on('connect_error', () => {
+                    setStatus('error', 'signaling error');
+                });
+
+                socket.on('screen-peers-update', (count) => {
+                    updatePeers(count);
+                });
+
+                socket.on('screen-offer', async (data) => {
+                    console.log('📩 Received offer from:', data.sender);
+                    if (!peerConnection) {
+                        await createPeerConnection(false);
+                    }
+                    try {
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                        const answer = await peerConnection.createAnswer();
+                        await peerConnection.setLocalDescription(answer);
+                        socket.emit('screen-answer', { room: roomId, answer, target: data.sender });
+                    } catch (err) {
+                        console.error('Error handling offer:', err);
+                    }
+                });
+
+                socket.on('screen-answer', async (data) => {
+                    console.log('📩 Received answer from:', data.sender);
+                    if (peerConnection && peerConnection.currentRemoteDescription === null) {
+                        try {
+                            await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                        } catch (err) {
+                            console.error('Error setting answer:', err);
+                        }
+                    }
+                });
+
+                socket.on('screen-ice-candidate', async (data) => {
+                    if (peerConnection) {
+                        try {
+                            await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                        } catch (err) {
+                            console.error('Error adding ICE candidate:', err);
+                        }
+                    }
+                });
+
+                socket.on('screen-stopped', () => {
+                    console.log('🛑 Screen share stopped by broadcaster');
+                    if (isViewing) {
+                        hideStream();
+                        setStatus('warning', 'broadcaster stopped');
+                        isViewing = false;
+                        setMode('idle');
+                        // Attempt to reconnect after delay
+                        if (modeParam === 'view') {
+                            scheduleReconnect();
+                        }
+                    }
+                });
+            }
+
+            // ---- Auto‑reconnect for viewers ----
+            function scheduleReconnect() {
+                if (reconnectTimer) return;
+                setStatus('warning', 'reconnecting...');
+                reconnectTimer = setTimeout(() => {
+                    reconnectTimer = null;
+                    if (modeParam === 'view' && !isViewing) {
+                        console.log('🔄 Reconnecting to broadcaster...');
+                        viewRemote();
+                    }
+                }, 3000);
+            }
+
+            // ---- WebRTC Peer Connection ----
+            async function createPeerConnection(isInitiator) {
+                if (peerConnection) {
+                    peerConnection.close();
+                    peerConnection = null;
+                }
+
+                const config = {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' }
+                    ]
+                };
+
+                peerConnection = new RTCPeerConnection(config);
+
+                if (localStream) {
+                    localStream.getTracks().forEach(track => {
+                        peerConnection.addTrack(track, localStream);
+                    });
+                }
+
+                peerConnection.ontrack = (event) => {
+                    console.log('📺 Received remote track');
+                    if (event.streams && event.streams.length > 0) {
+                        showStream(event.streams[0]);
+                        setStatus('', 'receiving stream');
+                        setMode('viewing');
+                        isViewing = true;
+                        // Clear reconnect timer
+                        if (reconnectTimer) {
+                            clearTimeout(reconnectTimer);
+                            reconnectTimer = null;
+                        }
+                        isReconnecting = false;
+                    }
+                };
+
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        socket.emit('screen-ice-candidate', {
+                            room: roomId,
+                            candidate: event.candidate
+                        });
+                    }
+                };
+
+                peerConnection.oniceconnectionstatechange = () => {
+                    const state = peerConnection.iceConnectionState;
+                    console.log('ICE state:', state);
+                    if (state === 'disconnected' || state === 'failed' || state === 'closed') {
+                        if (isViewing) {
+                            hideStream();
+                            setStatus('warning', 'connection lost');
+                            isViewing = false;
+                            setMode('idle');
+                            if (modeParam === 'view') {
+                                scheduleReconnect();
+                            }
+                        }
+                    }
+                };
+
+                if (isInitiator && localStream) {
+                    const offer = await peerConnection.createOffer();
+                    await peerConnection.setLocalDescription(offer);
+                    socket.emit('screen-offer', { room: roomId, offer });
+                    console.log('📤 Sent offer');
+                }
+
+                return peerConnection;
+            }
+
+            // ---- Start Screen Share ----
+            async function startScreenShare() {
+                try {
+                    setLoading(startBtn, true);
+                    setStatus('', 'requesting screen...');
+
+                    localStream = await navigator.mediaDevices.getDisplayMedia({
+                        video: { cursor: 'always', displaySurface: 'monitor' },
+                        audio: false,
+                    });
+
+                    showStream(localStream);
+                    setStatus('', 'broadcasting screen');
+                    setMode('broadcasting');
+                    isSharing = true;
+
+                    initSocket();
+                    await createPeerConnection(true);
+
+                    startBtn.disabled = true;
+                    stopBtn.disabled = false;
+                    viewBtn.disabled = true;
+                    setLoading(startBtn, false);
+                    setStatus('', 'live · broadcasting');
+
+                    socket.emit('screen-start', roomId);
+
+                    localStream.getVideoTracks()[0].onended = () => {
+                        stopScreenShare();
+                    };
+
+                } catch (err) {
+                    console.error('Error starting screen share:', err);
+                    setStatus('error', 'screen capture denied');
+                    setLoading(startBtn, false);
+                    startBtn.disabled = false;
+                    if (localStream) {
+                        localStream.getTracks().forEach(t => t.stop());
+                        localStream = null;
+                    }
+                }
+            }
+
+            // ---- Stop Screen Share ----
+            function stopScreenShare() {
+                if (localStream) {
+                    localStream.getTracks().forEach(t => t.stop());
+                    localStream = null;
+                }
+                if (peerConnection) {
+                    peerConnection.close();
+                    peerConnection = null;
+                }
+                isSharing = false;
+                isViewing = false;
+                hideStream();
+                setStatus('', 'stopped');
+                setMode('idle');
+                updatePeers(0);
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                viewBtn.disabled = false;
+                if (socket) socket.emit('screen-stop', roomId);
+                console.log('🛑 Screen share stopped');
+            }
+
+            // ---- View Remote Screen ----
+            async function viewRemote() {
+                try {
+                    if (isViewing) {
+                        // Already viewing, maybe reconnect
+                        return;
+                    }
+                    setLoading(viewBtn, true);
+                    setStatus('', 'connecting to broadcaster...');
+                    isReconnecting = true;
+
+                    initSocket();
+                    await createPeerConnection(false);
+
+                    setStatus('', 'waiting for stream...');
+                    setMode('viewing');
+                    viewBtn.disabled = true;
+
+                    socket.emit('screen-request', roomId);
+
+                    // Timeout if no stream arrives
+                    setTimeout(() => {
+                        if (!isViewing && !isSharing) {
+                            setStatus('warning', 'no active broadcaster');
+                            viewBtn.disabled = false;
+                            setLoading(viewBtn, false);
+                            isReconnecting = false;
+                            // If we're in view mode and no stream, keep trying
+                            if (modeParam === 'view') {
+                                scheduleReconnect();
+                            }
+                        }
+                    }, 10000);
+
+                } catch (err) {
+                    console.error('Error viewing:', err);
+                    setStatus('error', 'connection failed');
+                    setLoading(viewBtn, false);
+                    viewBtn.disabled = false;
+                    isReconnecting = false;
+                }
+            }
+
+            // ---- Auto‑start logic based on mode ----
+            function autoStart() {
+                // Hide controls in auto modes
+                if (modeParam === 'share' || modeParam === 'view') {
+                    controlsDiv.classList.add('hidden');
+                }
+
+                if (modeParam === 'share') {
+                    // Auto-start screen sharing
+                    setTimeout(() => startScreenShare(), 500);
+                    modeLabel.textContent = '// auto‑share mode';
+                } else if (modeParam === 'view') {
+                    // Auto-start viewing
+                    setTimeout(() => viewRemote(), 500);
+                    modeLabel.textContent = '// auto‑view mode';
+                } else {
+                    // Manual mode: show controls
+                    controlsDiv.classList.remove('hidden');
+                    modeLabel.textContent = '// manual mode';
+                }
+            }
+
+            // ---- Event Listeners ----
+            startBtn.addEventListener('click', startScreenShare);
+            stopBtn.addEventListener('click', stopScreenShare);
+            viewBtn.addEventListener('click', viewRemote);
+
+            // ---- Init ----
+            initSocket();
+            autoStart();
+
+            // ---- Cleanup ----
+            window.addEventListener('beforeunload', () => {
+                if (localStream) localStream.getTracks().forEach(t => t.stop());
+                if (peerConnection) peerConnection.close();
+                if (socket) {
+                    socket.emit('screen-stop', roomId);
+                    socket.disconnect();
+                }
+                if (reconnectTimer) {
+                    clearTimeout(reconnectTimer);
+                    reconnectTimer = null;
+                }
+            });
+
+            window.addEventListener('orientationchange', () => setTimeout(resize, 300));
+            console.log('⛧ SCREEN_CLONE ready — auto‑start enabled');
+        })();
+    </script>
+</body>
+</html>
